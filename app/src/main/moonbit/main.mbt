@@ -264,15 +264,18 @@ fn main {
   // ---- Helper closures ----
 
   fn calculate_layout() -> Unit {
-    let avail_w = Float::from_int(screen_width.val)
-    let avail_h = Float::from_int(screen_height.val) - header_height.val
+    let sw = Float::from_int(screen_width.val)
+    let sh = Float::from_int(screen_height.val)
+    let margin = sw * 0.03
+    let avail_w = sw - margin * 2.0
+    let avail_h = sh - header_height.val - margin * 2.0
     let cell_w = avail_w / Float::from_int(cols.val)
     let cell_h = avail_h / Float::from_int(rows.val)
     cell_size.val = if cell_w < cell_h { cell_w } else { cell_h }
     let board_w = cell_size.val * Float::from_int(cols.val)
     let board_h = cell_size.val * Float::from_int(rows.val)
-    offset_x.val = (avail_w - board_w) / 2.0
-    offset_y.val = header_height.val + (avail_h - board_h) / 2.0
+    offset_x.val = (sw - board_w) / 2.0
+    offset_y.val = header_height.val + (sh - header_height.val - board_h) / 2.0
   }
 
   fn init_camera() -> Unit {
@@ -291,23 +294,25 @@ fn main {
   }
 
   fn clamp_camera() -> Unit {
+    let sw = Float::from_int(screen_width.val)
+    let margin = sw * 0.03
     let board_w = Float::from_int(cols.val) * cell_size.val
     let board_h = Float::from_int(rows.val) * cell_size.val
     let board_cx = offset_x.val + board_w / 2.0
     let board_cy = offset_y.val + board_h / 2.0
     let avail_h = Float::from_int(screen_height.val) - header_height.val
-    let vis_w = Float::from_int(screen_width.val) / cam_zoom.val
+    let vis_w = sw / cam_zoom.val
     let vis_h = avail_h / cam_zoom.val
-    if board_w > vis_w {
-      let mn = offset_x.val + vis_w / 2.0
-      let mx = offset_x.val + board_w - vis_w / 2.0
+    if board_w + margin * 2.0 > vis_w {
+      let mn = offset_x.val - margin + vis_w / 2.0
+      let mx = offset_x.val + board_w + margin - vis_w / 2.0
       cam_target_x.val = clamp(cam_target_x.val, mn, mx)
     } else {
       cam_target_x.val = board_cx
     }
-    if board_h > vis_h {
-      let mn = offset_y.val + vis_h / 2.0
-      let mx = offset_y.val + board_h - vis_h / 2.0
+    if board_h + margin * 2.0 > vis_h {
+      let mn = offset_y.val - margin + vis_h / 2.0
+      let mx = offset_y.val + board_h + margin - vis_h / 2.0
       cam_target_y.val = clamp(cam_target_y.val, mn, mx)
     } else {
       cam_target_y.val = board_cy
