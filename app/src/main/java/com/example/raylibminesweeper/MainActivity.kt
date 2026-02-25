@@ -1,15 +1,17 @@
 package com.example.raylibminesweeper
 
+import android.app.NativeActivity
+import android.os.Bundle
+import android.view.WindowManager
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.google.androidgamesdk.GameActivity
 
-class MainActivity : GameActivity() {
-    companion object {
-        init {
-            System.loadLibrary("raylibminesweeper")
-        }
+class MainActivity : NativeActivity() {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
