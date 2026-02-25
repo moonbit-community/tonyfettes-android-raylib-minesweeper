@@ -51,6 +51,8 @@ let state_won : Int = 2
 
 let state_lost : Int = 3
 
+let state_about : Int = 4
+
 // ---- Gesture state constants ----
 
 let touch_none : Int = 0
@@ -406,6 +408,19 @@ fn main {
         if pos.x >= btn_x && pos.x <= btn_x + btn_w && pos.y >= hard_y && pos.y <= hard_y + btn_h {
           init_board(16, 30, 99)
         }
+        // About
+        let about_w = sw * 0.4
+        let about_h = sh * 0.055
+        let about_x = (sw - about_w) / 2.0
+        let about_y = start_y + spacing * 3.0 + btn_h * 0.3
+        if pos.x >= about_x && pos.x <= about_x + about_w && pos.y >= about_y && pos.y <= about_y + about_h {
+          game_state.val = state_about
+        }
+      }
+    } else if game_state.val == state_about {
+      @raylib.set_gestures_enabled(@raylib.GestureTap)
+      if @raylib.is_gesture_detected(@raylib.GestureTap) {
+        game_state.val = state_menu
       }
     } else if game_state.val == state_playing {
       @raylib.set_gestures_enabled(0)
@@ -597,6 +612,107 @@ fn main {
           @raylib.white,
         )
       }
+
+      // About button
+      let about_w = sw * 0.4
+      let about_h = sh * 0.055
+      let about_x = (sw - about_w) / 2.0
+      let about_y = start_y + spacing * 3.0 + btn_h * 0.3
+      let about_font = (about_h * 0.45).to_int()
+      let about_rect = @raylib.Rectangle::new(about_x, about_y, about_w, about_h)
+      @raylib.draw_rectangle_rounded(about_rect, 0.3, 8, @raylib.darkgray)
+      @raylib.draw_rectangle_rounded_lines(about_rect, 0.3, 8, @raylib.darkgray)
+      let about_label = "About"
+      let about_tw = @raylib.measure_text(about_label, about_font)
+      @raylib.draw_text(
+        about_label,
+        (about_x + (about_w - Float::from_int(about_tw)) / 2.0).to_int(),
+        (about_y + (about_h - Float::from_int(about_font)) / 2.0).to_int(),
+        about_font,
+        @raylib.white,
+      )
+    } else if game_state.val == state_about {
+      // About page
+      let max_tw = (sw * 0.9).to_int()
+
+      let title_text = "ABOUT"
+      let mut title_size = (sh / 14.0).to_int()
+      let mut title_tw = @raylib.measure_text(title_text, title_size)
+      if title_tw > max_tw {
+        title_size = (Float::from_int(title_size) * (Float::from_int(max_tw) / Float::from_int(title_tw))).to_int()
+        title_tw = @raylib.measure_text(title_text, title_size)
+      }
+      @raylib.draw_text(
+        title_text,
+        (screen_width.val - title_tw) / 2,
+        (sh * 0.12).to_int(),
+        title_size,
+        @raylib.darkgray,
+      )
+
+      let name_text = "Minesweeper"
+      let mut name_size = (sh / 16.0).to_int()
+      let mut name_tw = @raylib.measure_text(name_text, name_size)
+      if name_tw > max_tw {
+        name_size = (Float::from_int(name_size) * (Float::from_int(max_tw) / Float::from_int(name_tw))).to_int()
+        name_tw = @raylib.measure_text(name_text, name_size)
+      }
+      @raylib.draw_text(
+        name_text,
+        (screen_width.val - name_tw) / 2,
+        (sh * 0.30).to_int(),
+        name_size,
+        @raylib.black,
+      )
+
+      let ver_text = "Version 1.0"
+      let mut info_size = (sh / 28.0).to_int()
+      let mut ver_tw = @raylib.measure_text(ver_text, info_size)
+      if ver_tw > max_tw {
+        info_size = (Float::from_int(info_size) * (Float::from_int(max_tw) / Float::from_int(ver_tw))).to_int()
+        ver_tw = @raylib.measure_text(ver_text, info_size)
+      }
+      @raylib.draw_text(
+        ver_text,
+        (screen_width.val - ver_tw) / 2,
+        (sh * 0.40).to_int(),
+        info_size,
+        @raylib.gray,
+      )
+
+      let tech_text = "Built with MoonBit + Raylib"
+      let mut tech_size = info_size
+      let mut tech_tw = @raylib.measure_text(tech_text, tech_size)
+      if tech_tw > max_tw {
+        tech_size = (Float::from_int(tech_size) * (Float::from_int(max_tw) / Float::from_int(tech_tw))).to_int()
+        tech_tw = @raylib.measure_text(tech_text, tech_size)
+      }
+      @raylib.draw_text(
+        tech_text,
+        (screen_width.val - tech_tw) / 2,
+        (sh * 0.48).to_int(),
+        tech_size,
+        @raylib.gray,
+      )
+
+      // Back button
+      let back_w = sw * 0.4
+      let back_h = sh * 0.06
+      let back_x = (sw - back_w) / 2.0
+      let back_y = sh * 0.75
+      let back_font = (back_h * 0.45).to_int()
+      let back_rect = @raylib.Rectangle::new(back_x, back_y, back_w, back_h)
+      @raylib.draw_rectangle_rounded(back_rect, 0.3, 8, @raylib.darkgray)
+      @raylib.draw_rectangle_rounded_lines(back_rect, 0.3, 8, @raylib.darkgray)
+      let back_label = "Back"
+      let back_tw = @raylib.measure_text(back_label, back_font)
+      @raylib.draw_text(
+        back_label,
+        (back_x + (back_w - Float::from_int(back_tw)) / 2.0).to_int(),
+        (back_y + (back_h - Float::from_int(back_font)) / 2.0).to_int(),
+        back_font,
+        @raylib.white,
+      )
     } else {
       // Draw board with camera
       let cam = make_camera()
