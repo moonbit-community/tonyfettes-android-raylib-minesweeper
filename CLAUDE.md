@@ -60,7 +60,7 @@ MoonBit structs (Color, Vector2, Rectangle, Camera2D) are serialized to `Bytes` 
 
 ### Game state
 
-All mutable state uses `Ref[T]` at module level. Game states: `state_menu` (0), `state_playing` (1), `state_won` (2), `state_lost` (3), `state_about` (4). Difficulty presets: Easy 9×9/10, Medium 16×16/40, Hard 16×30/99.
+All mutable state uses `Ref[T]` at module level. Game states: `state_menu` (0), `state_playing` (1), `state_won` (2), `state_lost` (3), `state_about` (4). Difficulty presets: Easy 12×8/10, Medium 20×12/40, Hard 30×16/99.
 
 ## MoonBit Conventions
 

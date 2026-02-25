@@ -396,17 +396,17 @@ fn main {
         let spacing = btn_h * 1.5
         // Easy
         if pos.x >= btn_x && pos.x <= btn_x + btn_w && pos.y >= start_y && pos.y <= start_y + btn_h {
-          init_board(9, 9, 10)
+          init_board(12, 8, 10)
         }
         // Medium
         let med_y = start_y + spacing
         if pos.x >= btn_x && pos.x <= btn_x + btn_w && pos.y >= med_y && pos.y <= med_y + btn_h {
-          init_board(16, 16, 40)
+          init_board(20, 12, 40)
         }
         // Hard
         let hard_y = start_y + spacing * 2.0
         if pos.x >= btn_x && pos.x <= btn_x + btn_w && pos.y >= hard_y && pos.y <= hard_y + btn_h {
-          init_board(16, 30, 99)
+          init_board(30, 16, 99)
         }
         // About
         let about_w = sw * 0.4
@@ -591,7 +591,7 @@ fn main {
       let spacing = btn_h * 1.5
       let font_size = (btn_h * 0.45).to_int()
 
-      let labels = ["Easy (9x9)", "Medium (16x16)", "Hard (16x30)"]
+      let labels = ["Easy (12x8)", "Medium (20x12)", "Hard (30x16)"]
       let btn_colors = [
         @raylib.green,
         @raylib.Color::new(255, 165, 0, 255),
