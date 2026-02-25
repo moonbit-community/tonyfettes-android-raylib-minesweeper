@@ -73,3 +73,11 @@ All mutable state uses `Ref[T]` at module level. Game states: `state_menu` (0), 
 ## Git Conventions
 
 - Use [Conventional Commits](https://www.conventionalcommits.org/) for all commit messages (e.g. `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`, `build:`)
+
+## Releasing
+
+When publishing a GitHub release, always attach the release APK:
+
+1. Build the release APK: `./gradlew assembleRelease`
+2. The APK is at `app/build/outputs/apk/release/app-release-unsigned.apk`
+3. Upload it to the release: `gh release upload <tag> app/build/outputs/apk/release/app-release-unsigned.apk`

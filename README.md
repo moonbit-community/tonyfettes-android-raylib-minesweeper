@@ -18,7 +18,7 @@ A native Android Minesweeper game written in [MoonBit](https://www.moonbitlang.c
 
 ### Prerequisites
 
-- Android SDK (API 36)
+- Android SDK (API 26+)
 - Android NDK
 - [MoonBit](https://www.moonbitlang.com/) compiler (`moon` on PATH)
 - CMake 3.22.1+
