@@ -911,14 +911,19 @@ fn main {
           screen_height.val,
           @raylib.Color::new(0, 0, 0, 128),
         )
-        let msg_size = (sh / 10.0).to_int()
         let msg = if game_state.val == state_won { "YOU WIN!" } else { "GAME OVER" }
         let msg_color = if game_state.val == state_won {
           @raylib.green
         } else {
           @raylib.red
         }
-        let msg_w = @raylib.measure_text(msg, msg_size)
+        let max_w = screen_width.val * 9 / 10
+        let mut msg_size = (sh / 10.0).to_int()
+        let mut msg_w = @raylib.measure_text(msg, msg_size)
+        if msg_w > max_w {
+          msg_size = (msg_size.to_double() * max_w.to_double() / msg_w.to_double()).to_int()
+          msg_w = @raylib.measure_text(msg, msg_size)
+        }
         @raylib.draw_text(
           msg,
           (screen_width.val - msg_w) / 2,
