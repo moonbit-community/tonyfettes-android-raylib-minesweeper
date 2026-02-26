@@ -29,16 +29,46 @@ fn vector2_distance(a : @raylib.Vector2, b : @raylib.Vector2) -> Float {
 
 // ---- Color constants ----
 
+let color_bg : @raylib.Color = @raylib.Color::new(236, 240, 241, 255)
+
+let color_header_bg : @raylib.Color = @raylib.Color::new(44, 62, 80, 255)
+
+let color_header_text : @raylib.Color = @raylib.Color::new(236, 240, 241, 255)
+
+let color_unrevealed : @raylib.Color = @raylib.Color::new(52, 152, 219, 255)
+
+let color_unrevealed_alt : @raylib.Color = @raylib.Color::new(41, 128, 185, 255)
+
+let color_revealed : @raylib.Color = @raylib.Color::new(223, 230, 233, 255)
+
+let color_revealed_alt : @raylib.Color = @raylib.Color::new(214, 220, 224, 255)
+
+let color_flag : @raylib.Color = @raylib.Color::new(231, 76, 60, 255)
+
+let color_mine_bg : @raylib.Color = @raylib.Color::new(231, 76, 60, 255)
+
+let color_mine_fg : @raylib.Color = @raylib.Color::new(44, 62, 80, 255)
+
+let color_btn_restart : @raylib.Color = @raylib.Color::new(241, 196, 15, 255)
+
+let color_pressed : @raylib.Color = @raylib.Color::new(0, 0, 0, 40)
+
+let color_win : @raylib.Color = @raylib.Color::new(46, 204, 113, 255)
+
+let color_lose : @raylib.Color = @raylib.Color::new(231, 76, 60, 255)
+
+let color_overlay : @raylib.Color = @raylib.Color::new(0, 0, 0, 160)
+
 let number_colors : Array[@raylib.Color] = [
   @raylib.blank,                             // 0 - not used
-  @raylib.blue,                              // 1
-  @raylib.darkgreen,                         // 2
-  @raylib.red,                               // 3
-  @raylib.darkblue,                          // 4
-  @raylib.maroon,                            // 5
-  @raylib.Color::new(0, 128, 128, 255),      // 6 - Teal
-  @raylib.black,                             // 7
-  @raylib.gray,                              // 8
+  @raylib.Color::new(25, 118, 210, 255),     // 1 - blue
+  @raylib.Color::new(56, 142, 60, 255),      // 2 - green
+  @raylib.Color::new(211, 47, 47, 255),      // 3 - red
+  @raylib.Color::new(123, 31, 162, 255),     // 4 - purple
+  @raylib.Color::new(255, 143, 0, 255),      // 5 - orange
+  @raylib.Color::new(0, 151, 167, 255),      // 6 - teal
+  @raylib.Color::new(66, 66, 66, 255),       // 7 - dark gray
+  @raylib.Color::new(158, 158, 158, 255),    // 8 - gray
 ]
 
 // ---- Game state constants ----
@@ -52,6 +82,12 @@ let state_won : Int = 2
 let state_lost : Int = 3
 
 let state_about : Int = 4
+
+// ---- Mode constants ----
+
+let mode_dig : Int = 0
+
+let mode_flag : Int = 1
 
 // ---- Gesture state constants ----
 
@@ -203,6 +239,56 @@ fn toggle_flag(board : Array[Cell], rows : Int, cols : Int, row : Int, col : Int
   }
 }
 
+fn chord_reveal(
+  board : Array[Cell],
+  rows : Int,
+  cols : Int,
+  row : Int,
+  col : Int,
+  revealed_count : Ref[Int],
+) -> Bool {
+  // Returns true if a mine was hit
+  if not(is_valid_cell(row, col, rows, cols)) {
+    return false
+  }
+  let idx = cell_index(row, col, cols)
+  let cell = board[idx]
+  if not(cell.is_revealed) || cell.neighbor_mines == 0 {
+    return false
+  }
+  // Count flags around this cell
+  let mut flags = 0
+  for dr = -1; dr <= 1; dr = dr + 1 {
+    for dc = -1; dc <= 1; dc = dc + 1 {
+      let nr = row + dr
+      let nc = col + dc
+      if is_valid_cell(nr, nc, rows, cols) && board[cell_index(nr, nc, cols)].is_flagged {
+        flags = flags + 1
+      }
+    }
+  }
+  if flags != cell.neighbor_mines {
+    return false
+  }
+  // Reveal all unflagged unrevealed neighbors
+  let mut hit_mine = false
+  for dr = -1; dr <= 1; dr = dr + 1 {
+    for dc = -1; dc <= 1; dc = dc + 1 {
+      let nr = row + dr
+      let nc = col + dc
+      if is_valid_cell(nr, nc, rows, cols) {
+        let ni = cell_index(nr, nc, cols)
+        if not(board[ni].is_revealed) && not(board[ni].is_flagged) {
+          if reveal_cell(board, rows, cols, nr, nc, revealed_count) {
+            hit_mine = true
+          }
+        }
+      }
+    }
+  }
+  hit_mine
+}
+
 // ---- Main ----
 
 fn main {
@@ -260,6 +346,14 @@ fn main {
   let pan_start_y : Ref[Float] = { val: 0.0 }
   let pan_start_target_x : Ref[Float] = { val: 0.0 }
   let pan_start_target_y : Ref[Float] = { val: 0.0 }
+
+  // Mode state
+  let current_mode : Ref[Int] = { val: mode_dig }
+
+  // Highlight state
+  let highlight_row : Ref[Int] = { val: -1 }
+  let highlight_col : Ref[Int] = { val: -1 }
+  let highlight_is_chord : Ref[Bool] = { val: false }
 
   // ---- Helper closures ----
 
@@ -328,6 +422,7 @@ fn main {
     first_click.val = true
     timer.val = 0.0
     game_state.val = state_playing
+    current_mode.val = mode_dig
     let total = r * c
     let new_board = Array::make(total, Cell::new())
     for i = 0; i < total; i = i + 1 {
@@ -443,9 +538,25 @@ fn main {
         gesture_decided.val = false
         gesture_move_dist.val = 0.0
         active_gesture.val = tap_or_hold
+        // Set highlight for pressed cell
+        if ts.y > hh {
+          let (wx, wy) = screen_to_board(ts.x, ts.y)
+          let hr = get_cell_row(wy)
+          let hc = get_cell_col(wx)
+          if is_valid_cell(hr, hc, rows.val, cols.val) {
+            highlight_row.val = hr
+            highlight_col.val = hc
+            let hidx = cell_index(hr, hc, cols.val)
+            let hcell = board.val[hidx]
+            highlight_is_chord.val = hcell.is_revealed && hcell.neighbor_mines > 0
+          }
+        }
         if touch_count >= 2 {
           active_gesture.val = gesture_pinch
           gesture_decided.val = true
+          highlight_row.val = -1
+          highlight_col.val = -1
+          highlight_is_chord.val = false
           let t0 = @raylib.get_touch_position(0)
           let t1 = @raylib.get_touch_position(1)
           pinch_start_dist.val = vector2_distance(t0, t1)
@@ -460,10 +571,20 @@ fn main {
         let ts = @raylib.Vector2::new(touch_start_x.val, touch_start_y.val)
         gesture_move_dist.val = vector2_distance(pos, ts)
 
+        // Clear highlight if moved too far
+        if gesture_move_dist.val > 15.0 {
+          highlight_row.val = -1
+          highlight_col.val = -1
+          highlight_is_chord.val = false
+        }
+
         // Transition to pinch
         if active_gesture.val != gesture_pinch && touch_count >= 2 {
           active_gesture.val = gesture_pinch
           gesture_decided.val = true
+          highlight_row.val = -1
+          highlight_col.val = -1
+          highlight_is_chord.val = false
           let t0 = @raylib.get_touch_position(0)
           let t1 = @raylib.get_touch_position(1)
           pinch_start_dist.val = vector2_distance(t0, t1)
@@ -474,6 +595,9 @@ fn main {
         if not(gesture_decided.val) && touch_count == 1 && gesture_move_dist.val > 12.0 && cam_zoom.val > min_zoom.val + 0.01 {
           active_gesture.val = gesture_pan
           gesture_decided.val = true
+          highlight_row.val = -1
+          highlight_col.val = -1
+          highlight_is_chord.val = false
           pan_start_x.val = pos.x
           pan_start_y.val = pos.y
           pan_start_target_x.val = cam_target_x.val
@@ -514,50 +638,86 @@ fn main {
           clamp_camera()
         }
 
-        // Long press detection
+        // Long press detection — only set flag, defer execution to release
         if active_gesture.val == tap_or_hold && not(long_press_triggered.val) && touch_timer.val >= 0.5 && gesture_move_dist.val < 15.0 {
           long_press_triggered.val = true
           gesture_decided.val = true
-          let (wx, wy) = screen_to_board(touch_start_x.val, touch_start_y.val)
-          let row = get_cell_row(wy)
-          let col = get_cell_col(wx)
-          if is_valid_cell(row, col, rows.val, cols.val) {
-            toggle_flag(board.val, rows.val, cols.val, row, col, flag_count)
-          }
         }
       }
 
       // Touch released
       if touch_count == 0 && active_gesture.val != touch_none {
-        if active_gesture.val == tap_or_hold && not(long_press_triggered.val) && gesture_move_dist.val < 12.0 {
-          // Tap detected — check restart button first
-          let btn_size = hh * 0.7
-          let btn_x = (sw - btn_size) / 2.0
-          let btn_y = (hh - btn_size) / 2.0
-          if touch_start_x.val >= btn_x && touch_start_x.val <= btn_x + btn_size && touch_start_y.val >= btn_y && touch_start_y.val <= btn_y + btn_size {
-            game_state.val = state_menu
+        if long_press_triggered.val && gesture_move_dist.val < 15.0 {
+          // Long press release: toggle flag at highlight position
+          if highlight_row.val >= 0 && highlight_col.val >= 0 {
+            toggle_flag(board.val, rows.val, cols.val, highlight_row.val, highlight_col.val, flag_count)
+          }
+        } else if active_gesture.val == tap_or_hold && not(long_press_triggered.val) && gesture_move_dist.val < 12.0 {
+          // Short tap — check mode toggle button first
+          let mode_btn_size = hh * 0.65
+          let restart_btn_size = hh * 0.7
+          let restart_btn_x = (sw - restart_btn_size) / 2.0
+          let mode_btn_x = restart_btn_x + restart_btn_size + hh * 0.15
+          let mode_btn_y = (hh - mode_btn_size) / 2.0
+          if touch_start_x.val >= mode_btn_x && touch_start_x.val <= mode_btn_x + mode_btn_size && touch_start_y.val >= mode_btn_y && touch_start_y.val <= mode_btn_y + mode_btn_size {
+            // Toggle mode
+            current_mode.val = if current_mode.val == mode_dig { mode_flag } else { mode_dig }
           } else {
-            // Reveal cell
-            let (wx, wy) = screen_to_board(touch_start_x.val, touch_start_y.val)
-            let row = get_cell_row(wy)
-            let col = get_cell_col(wx)
-            if is_valid_cell(row, col, rows.val, cols.val) {
-              if first_click.val {
-                first_click.val = false
-                place_mines(board.val, rows.val, cols.val, total_mines.val, row, col)
-              }
-              let hit_mine = reveal_cell(board.val, rows.val, cols.val, row, col, revealed_count)
-              if hit_mine {
-                game_state.val = state_lost
-              } else if check_win() {
-                game_state.val = state_won
+            // Check restart button
+            let btn_size = hh * 0.7
+            let btn_x = (sw - btn_size) / 2.0
+            let btn_y = (hh - btn_size) / 2.0
+            if touch_start_x.val >= btn_x && touch_start_x.val <= btn_x + btn_size && touch_start_y.val >= btn_y && touch_start_y.val <= btn_y + btn_size {
+              game_state.val = state_menu
+            } else {
+              // Cell operation
+              let (wx, wy) = screen_to_board(touch_start_x.val, touch_start_y.val)
+              let row = get_cell_row(wy)
+              let col = get_cell_col(wx)
+              if is_valid_cell(row, col, rows.val, cols.val) {
+                let idx = cell_index(row, col, cols.val)
+                let cell = board.val[idx]
+                if cell.is_revealed && cell.neighbor_mines > 0 {
+                  // Chord reveal (works in both modes)
+                  let hit_mine = chord_reveal(board.val, rows.val, cols.val, row, col, revealed_count)
+                  if hit_mine {
+                    game_state.val = state_lost
+                  } else if check_win() {
+                    game_state.val = state_won
+                  }
+                } else if first_click.val {
+                  // First click: always dig regardless of mode
+                  first_click.val = false
+                  place_mines(board.val, rows.val, cols.val, total_mines.val, row, col)
+                  let hit_mine = reveal_cell(board.val, rows.val, cols.val, row, col, revealed_count)
+                  if hit_mine {
+                    game_state.val = state_lost
+                  } else if check_win() {
+                    game_state.val = state_won
+                  }
+                } else if current_mode.val == mode_flag {
+                  // Flag mode on unrevealed cell
+                  toggle_flag(board.val, rows.val, cols.val, row, col, flag_count)
+                } else {
+                  // Dig mode
+                  let hit_mine = reveal_cell(board.val, rows.val, cols.val, row, col, revealed_count)
+                  if hit_mine {
+                    game_state.val = state_lost
+                  } else if check_win() {
+                    game_state.val = state_won
+                  }
+                }
               }
             }
           }
         }
+        // Clear all state
         active_gesture.val = touch_none
         gesture_decided.val = false
         long_press_triggered.val = false
+        highlight_row.val = -1
+        highlight_col.val = -1
+        highlight_is_chord.val = false
       }
     } else {
       // WON or LOST
@@ -569,7 +729,7 @@ fn main {
 
     // ---- DRAW ----
     @raylib.begin_drawing()
-    @raylib.clear_background(@raylib.raywhite)
+    @raylib.clear_background(color_bg)
 
     if game_state.val == state_menu {
       // Draw menu
@@ -586,7 +746,7 @@ fn main {
         (screen_width.val - title_width) / 2,
         (sh / 6.0).to_int(),
         title_size,
-        @raylib.darkgray,
+        color_header_bg,
       )
 
       let btn_w = sw * 0.6
@@ -598,16 +758,15 @@ fn main {
 
       let labels = ["Easy (12x8)", "Medium (20x12)", "Hard (30x16)"]
       let btn_colors = [
-        @raylib.green,
-        @raylib.Color::new(255, 165, 0, 255),
-        @raylib.red,
+        @raylib.Color::new(46, 204, 113, 255),
+        @raylib.Color::new(243, 156, 18, 255),
+        @raylib.Color::new(231, 76, 60, 255),
       ]
 
       for i = 0; i < 3; i = i + 1 {
         let y = start_y + spacing * Float::from_int(i)
         let rect = @raylib.Rectangle::new(btn_x, y, btn_w, btn_h)
         @raylib.draw_rectangle_rounded(rect, 0.3, 8, btn_colors[i])
-        @raylib.draw_rectangle_rounded_lines(rect, 0.3, 8, @raylib.darkgray)
         let tw = @raylib.measure_text(labels[i], font_size)
         @raylib.draw_text(
           labels[i],
@@ -625,8 +784,7 @@ fn main {
       let about_y = start_y + spacing * 3.0 + btn_h * 0.3
       let about_font = (about_h * 0.45).to_int()
       let about_rect = @raylib.Rectangle::new(about_x, about_y, about_w, about_h)
-      @raylib.draw_rectangle_rounded(about_rect, 0.3, 8, @raylib.darkgray)
-      @raylib.draw_rectangle_rounded_lines(about_rect, 0.3, 8, @raylib.darkgray)
+      @raylib.draw_rectangle_rounded(about_rect, 0.3, 8, color_header_bg)
       let about_label = "About"
       let about_tw = @raylib.measure_text(about_label, about_font)
       @raylib.draw_text(
@@ -652,7 +810,7 @@ fn main {
         (screen_width.val - title_tw) / 2,
         (sh * 0.12).to_int(),
         title_size,
-        @raylib.darkgray,
+        color_header_bg,
       )
 
       let name_text = "Minesweeper"
@@ -667,7 +825,7 @@ fn main {
         (screen_width.val - name_tw) / 2,
         (sh * 0.30).to_int(),
         name_size,
-        @raylib.black,
+        color_header_bg,
       )
 
       let ver_text = "Version 1.0"
@@ -707,8 +865,7 @@ fn main {
       let back_y = sh * 0.75
       let back_font = (back_h * 0.45).to_int()
       let back_rect = @raylib.Rectangle::new(back_x, back_y, back_w, back_h)
-      @raylib.draw_rectangle_rounded(back_rect, 0.3, 8, @raylib.darkgray)
-      @raylib.draw_rectangle_rounded_lines(back_rect, 0.3, 8, @raylib.darkgray)
+      @raylib.draw_rectangle_rounded(back_rect, 0.3, 8, color_header_bg)
       let back_label = "Back"
       let back_tw = @raylib.measure_text(back_label, back_font)
       @raylib.draw_text(
@@ -722,6 +879,25 @@ fn main {
       // Draw board with camera
       let cam = make_camera()
       @raylib.begin_mode_2d(cam)
+
+      // Pre-compute chord highlight info
+      let chord_highlight_active = highlight_is_chord.val && highlight_row.val >= 0 && highlight_col.val >= 0
+      let mut chord_flags_match = false
+      if chord_highlight_active {
+        let hidx = cell_index(highlight_row.val, highlight_col.val, cols.val)
+        let hcell = board.val[hidx]
+        let mut hflags = 0
+        for dr = -1; dr <= 1; dr = dr + 1 {
+          for dc = -1; dc <= 1; dc = dc + 1 {
+            let nr = highlight_row.val + dr
+            let nc = highlight_col.val + dc
+            if is_valid_cell(nr, nc, rows.val, cols.val) && board.val[cell_index(nr, nc, cols.val)].is_flagged {
+              hflags = hflags + 1
+            }
+          }
+        }
+        chord_flags_match = hflags == hcell.neighbor_mines
+      }
 
       for r = 0; r < rows.val; r = r + 1 {
         for c = 0; c < cols.val; c = c + 1 {
@@ -738,85 +914,93 @@ fn main {
           let cell = board.val[idx]
 
           if not(cell.is_revealed) {
-            // Unrevealed — raised 3D look
-            @raylib.draw_rectangle_rec(rect, @raylib.lightgray)
-            // Top and left highlight
-            @raylib.draw_line_ex(
-              @raylib.Vector2::new(x + pad, y + pad),
-              @raylib.Vector2::new(x + cell_size.val - pad, y + pad),
-              2.0,
-              @raylib.white,
-            )
-            @raylib.draw_line_ex(
-              @raylib.Vector2::new(x + pad, y + pad),
-              @raylib.Vector2::new(x + pad, y + cell_size.val - pad),
-              2.0,
-              @raylib.white,
-            )
-            // Bottom and right shadow
-            @raylib.draw_line_ex(
-              @raylib.Vector2::new(x + pad, y + cell_size.val - pad),
-              @raylib.Vector2::new(x + cell_size.val - pad, y + cell_size.val - pad),
-              2.0,
-              @raylib.darkgray,
-            )
-            @raylib.draw_line_ex(
-              @raylib.Vector2::new(x + cell_size.val - pad, y + pad),
-              @raylib.Vector2::new(x + cell_size.val - pad, y + cell_size.val - pad),
-              2.0,
-              @raylib.darkgray,
-            )
+            // Unrevealed — flat rounded rectangle with checkerboard
+            let cell_color = if (r + c) % 2 == 0 { color_unrevealed } else { color_unrevealed_alt }
+            @raylib.draw_rectangle_rounded(rect, 0.2, 8, cell_color)
 
             if cell.is_flagged {
-              // Red flag triangle
+              // Flag: white pole + red triangle + white base
               let cx = x + cell_size.val / 2.0
               let cy = y + cell_size.val / 2.0
-              let fs = cell_size.val * 0.3
-              @raylib.draw_triangle(
-                @raylib.Vector2::new(cx, cy - fs),
-                @raylib.Vector2::new(cx - fs, cy),
-                @raylib.Vector2::new(cx + fs, cy),
-                @raylib.red,
-              )
-              // Flag pole
+              let fs = cell_size.val * 0.25
+              let thick = cell_size.val * 0.05
+              // White flagpole
               @raylib.draw_line_ex(
-                @raylib.Vector2::new(cx, cy - fs),
-                @raylib.Vector2::new(cx, cy + fs),
-                2.0,
-                @raylib.black,
+                @raylib.Vector2::new(cx - fs * 0.1, cy - fs),
+                @raylib.Vector2::new(cx - fs * 0.1, cy + fs * 0.7),
+                thick,
+                @raylib.white,
+              )
+              // Red flag triangle
+              @raylib.draw_triangle(
+                @raylib.Vector2::new(cx - fs * 0.1, cy - fs),
+                @raylib.Vector2::new(cx - fs * 0.1, cy - fs * 0.1),
+                @raylib.Vector2::new(cx + fs * 0.7, cy - fs * 0.55),
+                color_flag,
+              )
+              // White base line
+              @raylib.draw_line_ex(
+                @raylib.Vector2::new(cx - fs * 0.5, cy + fs * 0.7),
+                @raylib.Vector2::new(cx + fs * 0.3, cy + fs * 0.7),
+                thick,
+                @raylib.white,
               )
             }
           } else if cell.has_mine {
-            // Mine cell
-            @raylib.draw_rectangle_rec(rect, @raylib.red)
+            // Mine cell — rounded red background with improved mine icon
+            @raylib.draw_rectangle_rounded(rect, 0.2, 8, color_mine_bg)
             let cx = x + cell_size.val / 2.0
             let cy = y + cell_size.val / 2.0
+            let mr = cell_size.val * 0.25
+            let thick = cell_size.val * 0.06
+            // Mine body
             @raylib.draw_circle_v(
               @raylib.Vector2::new(cx, cy),
-              cell_size.val * 0.25,
-              @raylib.black,
+              mr,
+              color_mine_fg,
             )
-            // Spikes
-            let sp = cell_size.val * 0.3
+            // Horizontal spike
             @raylib.draw_line_ex(
-              @raylib.Vector2::new(cx - sp, cy),
-              @raylib.Vector2::new(cx + sp, cy),
-              2.0,
-              @raylib.black,
+              @raylib.Vector2::new(cx - mr * 1.3, cy),
+              @raylib.Vector2::new(cx + mr * 1.3, cy),
+              thick,
+              color_mine_fg,
             )
+            // Vertical spike
             @raylib.draw_line_ex(
-              @raylib.Vector2::new(cx, cy - sp),
-              @raylib.Vector2::new(cx, cy + sp),
-              2.0,
-              @raylib.black,
+              @raylib.Vector2::new(cx, cy - mr * 1.3),
+              @raylib.Vector2::new(cx, cy + mr * 1.3),
+              thick,
+              color_mine_fg,
+            )
+            // Diagonal spike (top-left to bottom-right)
+            let diag = mr * 0.92
+            @raylib.draw_line_ex(
+              @raylib.Vector2::new(cx - diag, cy - diag),
+              @raylib.Vector2::new(cx + diag, cy + diag),
+              thick,
+              color_mine_fg,
+            )
+            // Diagonal spike (top-right to bottom-left)
+            @raylib.draw_line_ex(
+              @raylib.Vector2::new(cx + diag, cy - diag),
+              @raylib.Vector2::new(cx - diag, cy + diag),
+              thick,
+              color_mine_fg,
+            )
+            // White highlight dot
+            @raylib.draw_circle_v(
+              @raylib.Vector2::new(cx - mr * 0.3, cy - mr * 0.3),
+              mr * 0.2,
+              @raylib.white,
             )
           } else {
-            // Revealed safe cell
-            @raylib.draw_rectangle_rec(rect, @raylib.Color::new(192, 192, 192, 255))
-            @raylib.draw_rectangle_lines_ex(rect, 1.0, @raylib.Color::new(160, 160, 160, 255))
+            // Revealed safe cell — flat rounded rectangle with checkerboard
+            let cell_color = if (r + c) % 2 == 0 { color_revealed } else { color_revealed_alt }
+            @raylib.draw_rectangle_rounded(rect, 0.2, 8, cell_color)
 
             if cell.neighbor_mines > 0 {
-              let font_size = (cell_size.val * 0.6).to_int()
+              let font_size = (cell_size.val * 0.55).to_int()
               let num_text = cell.neighbor_mines.to_string()
               let tw = @raylib.measure_text(num_text, font_size)
               @raylib.draw_text(
@@ -828,25 +1012,37 @@ fn main {
               )
             }
           }
+
+          // Draw highlight overlay
+          let should_highlight = if highlight_row.val == r && highlight_col.val == c {
+            true
+          } else if chord_highlight_active && chord_flags_match {
+            int_abs(r - highlight_row.val) <= 1 && int_abs(c - highlight_col.val) <= 1 && not(cell.is_revealed) && not(cell.is_flagged)
+          } else {
+            false
+          }
+          if should_highlight {
+            @raylib.draw_rectangle_rounded(rect, 0.2, 8, color_pressed)
+          }
         }
       }
 
       @raylib.end_mode_2d()
 
       // Draw header
-      @raylib.draw_rectangle(0, 0, screen_width.val, hh.to_int(), @raylib.lightgray)
-      @raylib.draw_line(0, hh.to_int(), screen_width.val, hh.to_int(), @raylib.darkgray)
+      let header_rect = @raylib.Rectangle::new(0.0, 0.0, sw, hh)
+      @raylib.draw_rectangle_rounded(header_rect, 0.0, 1, color_header_bg)
 
       let h_font_size = (hh * 0.45).to_int()
 
-      // Mine counter (left)
+      // Mine counter (left) — red on dark background
       let mine_text = "\{total_mines.val - flag_count.val}"
       @raylib.draw_text(
         mine_text,
         (sw * 0.05).to_int(),
         ((hh - Float::from_int(h_font_size)) / 2.0).to_int(),
         h_font_size,
-        @raylib.red,
+        color_flag,
       )
 
       // Restart button (center)
@@ -854,8 +1050,7 @@ fn main {
       let btn_x = (sw - btn_size) / 2.0
       let btn_y = (hh - btn_size) / 2.0
       let btn_rect = @raylib.Rectangle::new(btn_x, btn_y, btn_size, btn_size)
-      @raylib.draw_rectangle_rounded(btn_rect, 0.3, 8, @raylib.yellow)
-      @raylib.draw_rectangle_rounded_lines(btn_rect, 0.3, 8, @raylib.darkgray)
+      @raylib.draw_rectangle_rounded(btn_rect, 0.3, 8, color_btn_restart)
 
       // Smiley face
       let cx = btn_x + btn_size / 2.0
@@ -864,18 +1059,18 @@ fn main {
       @raylib.draw_circle_v(
         @raylib.Vector2::new(cx, cy),
         face_r,
-        @raylib.yellow,
+        color_btn_restart,
       )
       // Eyes
       @raylib.draw_circle_v(
         @raylib.Vector2::new(cx - face_r * 0.35, cy - face_r * 0.2),
         face_r * 0.12,
-        @raylib.black,
+        color_header_bg,
       )
       @raylib.draw_circle_v(
         @raylib.Vector2::new(cx + face_r * 0.35, cy - face_r * 0.2),
         face_r * 0.12,
-        @raylib.black,
+        color_header_bg,
       )
       // Mouth
       if game_state.val == state_lost {
@@ -883,7 +1078,7 @@ fn main {
           @raylib.Vector2::new(cx - face_r * 0.3, cy + face_r * 0.3),
           @raylib.Vector2::new(cx + face_r * 0.3, cy + face_r * 0.3),
           2.0,
-          @raylib.black,
+          color_header_bg,
         )
       } else {
         @raylib.draw_circle_sector(
@@ -892,11 +1087,54 @@ fn main {
           0.0,
           180.0,
           16,
-          @raylib.black,
+          color_header_bg,
         )
       }
 
-      // Timer (right)
+      // Mode toggle button (right of restart button)
+      let mode_btn_size = hh * 0.65
+      let mode_btn_x = btn_x + btn_size + hh * 0.15
+      let mode_btn_y = (hh - mode_btn_size) / 2.0
+      let mode_btn_rect = @raylib.Rectangle::new(mode_btn_x, mode_btn_y, mode_btn_size, mode_btn_size)
+      let mode_btn_color = if current_mode.val == mode_dig { color_unrevealed } else { color_flag }
+      @raylib.draw_rectangle_rounded(mode_btn_rect, 0.3, 8, mode_btn_color)
+      let mcx = mode_btn_x + mode_btn_size / 2.0
+      let mcy = mode_btn_y + mode_btn_size / 2.0
+      if current_mode.val == mode_dig {
+        // Dig mode icon: white circle (reveal indicator)
+        @raylib.draw_circle_v(
+          @raylib.Vector2::new(mcx, mcy),
+          mode_btn_size * 0.2,
+          @raylib.white,
+        )
+      } else {
+        // Flag mode icon: white flag
+        let mfs = mode_btn_size * 0.2
+        let mthick = mode_btn_size * 0.06
+        // White flagpole
+        @raylib.draw_line_ex(
+          @raylib.Vector2::new(mcx - mfs * 0.1, mcy - mfs),
+          @raylib.Vector2::new(mcx - mfs * 0.1, mcy + mfs * 0.7),
+          mthick,
+          @raylib.white,
+        )
+        // White flag triangle
+        @raylib.draw_triangle(
+          @raylib.Vector2::new(mcx - mfs * 0.1, mcy - mfs),
+          @raylib.Vector2::new(mcx - mfs * 0.1, mcy - mfs * 0.1),
+          @raylib.Vector2::new(mcx + mfs * 0.7, mcy - mfs * 0.55),
+          @raylib.white,
+        )
+        // White base line
+        @raylib.draw_line_ex(
+          @raylib.Vector2::new(mcx - mfs * 0.5, mcy + mfs * 0.7),
+          @raylib.Vector2::new(mcx + mfs * 0.3, mcy + mfs * 0.7),
+          mthick,
+          @raylib.white,
+        )
+      }
+
+      // Timer (right) — light text on dark background
       let timer_text = "\{timer.val.to_int()}"
       let tw = @raylib.measure_text(timer_text, h_font_size)
       @raylib.draw_text(
@@ -904,47 +1142,56 @@ fn main {
         (sw * 0.95 - Float::from_int(tw)).to_int(),
         ((hh - Float::from_int(h_font_size)) / 2.0).to_int(),
         h_font_size,
-        @raylib.darkgray,
+        color_header_text,
       )
 
       // Game over overlay
       if game_state.val != state_playing {
+        // Dark overlay
         @raylib.draw_rectangle(
           0,
           0,
           screen_width.val,
           screen_height.val,
-          @raylib.Color::new(0, 0, 0, 128),
+          color_overlay,
         )
+
+        // White card background
+        let card_w = sw * 0.7
+        let card_h = sh * 0.22
+        let card_x = (sw - card_w) / 2.0
+        let card_y = sh * 0.35
+        let card_rect = @raylib.Rectangle::new(card_x, card_y, card_w, card_h)
+        @raylib.draw_rectangle_rounded(card_rect, 0.1, 8, @raylib.white)
+
+        // Win/Loss message
         let msg = if game_state.val == state_won { "YOU WIN!" } else { "GAME OVER" }
-        let msg_color = if game_state.val == state_won {
-          @raylib.green
-        } else {
-          @raylib.red
-        }
-        let max_w = screen_width.val * 9 / 10
-        let mut msg_size = (sh / 10.0).to_int()
+        let msg_color = if game_state.val == state_won { color_win } else { color_lose }
+        let max_msg_w = (card_w * 0.9).to_int()
+        let mut msg_size = (card_h * 0.35).to_int()
         let mut msg_w = @raylib.measure_text(msg, msg_size)
-        if msg_w > max_w {
-          msg_size = (msg_size.to_double() * max_w.to_double() / msg_w.to_double()).to_int()
+        if msg_w > max_msg_w {
+          msg_size = (Float::from_int(msg_size) * Float::from_int(max_msg_w) / Float::from_int(msg_w)).to_int()
           msg_w = @raylib.measure_text(msg, msg_size)
         }
         @raylib.draw_text(
           msg,
-          (screen_width.val - msg_w) / 2,
-          (sh / 3.0).to_int(),
+          ((sw - Float::from_int(msg_w)) / 2.0).to_int(),
+          (card_y + card_h * 0.2).to_int(),
           msg_size,
           msg_color,
         )
-        let sub_size = (sh / 20.0).to_int()
+
+        // Subtitle
+        let sub_size = (card_h * 0.18).to_int()
         let sub = "Tap to continue"
         let sub_w = @raylib.measure_text(sub, sub_size)
         @raylib.draw_text(
           sub,
-          (screen_width.val - sub_w) / 2,
-          (sh / 3.0).to_int() + msg_size + sub_size,
+          ((sw - Float::from_int(sub_w)) / 2.0).to_int(),
+          (card_y + card_h * 0.65).to_int(),
           sub_size,
-          @raylib.white,
+          @raylib.gray,
         )
       }
     }
