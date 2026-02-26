@@ -1,0 +1,652 @@
+// Color constants, rendering layout constants, drawing helpers, and all rendering
+
+// ---- Color constants ----
+
+///|
+let color_bg : @raylib.Color = @raylib.Color::new(236, 240, 241, 255)
+
+///|
+let color_header_bg : @raylib.Color = @raylib.Color::new(44, 62, 80, 255)
+
+///|
+let color_header_text : @raylib.Color = @raylib.Color::new(236, 240, 241, 255)
+
+///|
+let color_unrevealed : @raylib.Color = @raylib.Color::new(52, 152, 219, 255)
+
+///|
+let color_unrevealed_alt : @raylib.Color = @raylib.Color::new(41, 128, 185, 255)
+
+///|
+let color_revealed : @raylib.Color = @raylib.Color::new(223, 230, 233, 255)
+
+///|
+let color_revealed_alt : @raylib.Color = @raylib.Color::new(214, 220, 224, 255)
+
+///|
+let color_flag : @raylib.Color = @raylib.Color::new(231, 76, 60, 255)
+
+///|
+let color_mine_bg : @raylib.Color = @raylib.Color::new(231, 76, 60, 255)
+
+///|
+let color_mine_fg : @raylib.Color = @raylib.Color::new(44, 62, 80, 255)
+
+///|
+let color_btn_restart : @raylib.Color = @raylib.Color::new(241, 196, 15, 255)
+
+///|
+let color_pressed : @raylib.Color = @raylib.Color::new(0, 0, 0, 40)
+
+///|
+let color_win : @raylib.Color = @raylib.Color::new(46, 204, 113, 255)
+
+///|
+let color_lose : @raylib.Color = @raylib.Color::new(231, 76, 60, 255)
+
+///|
+let color_overlay : @raylib.Color = @raylib.Color::new(0, 0, 0, 160)
+
+///|
+let number_colors : Array[@raylib.Color] = [
+  @raylib.blank, // 0 - not used
+  @raylib.Color::new(25, 118, 210, 255), // 1 - blue
+  @raylib.Color::new(56, 142, 60, 255), // 2 - green
+  @raylib.Color::new(211, 47, 47, 255), // 3 - red
+  @raylib.Color::new(123, 31, 162, 255), // 4 - purple
+  @raylib.Color::new(255, 143, 0, 255), // 5 - orange
+  @raylib.Color::new(0, 151, 167, 255), // 6 - teal
+  @raylib.Color::new(66, 66, 66, 255), // 7 - dark gray
+  @raylib.Color::new(158, 158, 158, 255), // 8 - gray
+]
+
+// ---- Rendering layout constants ----
+
+///|
+let btn_roundness : Float = 0.3
+
+///|
+let cell_roundness : Float = 0.2
+
+///|
+let cell_padding : Float = 1.0
+
+///|
+let menu_btn_width_ratio : Float = 0.6
+
+///|
+let menu_btn_height_ratio : Float = 0.07
+
+///|
+let menu_start_y_ratio : Float = 0.35
+
+///|
+let menu_btn_spacing_mult : Float = 1.5
+
+///|
+let menu_font_ratio : Float = 0.45
+
+///|
+let menu_about_width_ratio : Float = 0.4
+
+///|
+let menu_about_height_ratio : Float = 0.055
+
+///|
+let restart_btn_ratio : Float = 0.7
+
+///|
+let mode_btn_ratio : Float = 0.65
+
+///|
+let mode_btn_gap_ratio : Float = 0.15
+
+///|
+let card_width_ratio : Float = 0.7
+
+///|
+let card_height_ratio : Float = 0.22
+
+///|
+let card_y_ratio : Float = 0.35
+
+// ---- Helpers ----
+
+///|
+fn int_abs(x : Int) -> Int {
+  if x < 0 {
+    -x
+  } else {
+    x
+  }
+}
+
+///|
+fn draw_text_centered_in_rect(
+  text : String,
+  rx : Float,
+  ry : Float,
+  rw : Float,
+  rh : Float,
+  font_size : Int,
+  color : @raylib.Color,
+) -> Unit {
+  let tw = @raylib.measure_text(text, font_size)
+  @raylib.draw_text(
+    text,
+    (rx + (rw - Float::from_int(tw)) / 2.0).to_int(),
+    (ry + (rh - Float::from_int(font_size)) / 2.0).to_int(),
+    font_size,
+    color,
+  )
+}
+
+///|
+fn draw_text_hcentered(
+  text : String,
+  screen_width : Int,
+  y : Int,
+  font_size : Int,
+  color : @raylib.Color,
+) -> Unit {
+  let tw = @raylib.measure_text(text, font_size)
+  @raylib.draw_text(text, (screen_width - tw) / 2, y, font_size, color)
+}
+
+///|
+fn fit_font_size(text : String, initial_size : Int, max_width : Int) -> Int {
+  let tw = @raylib.measure_text(text, initial_size)
+  if tw > max_width {
+    (Float::from_int(initial_size) *
+    (Float::from_int(max_width) / Float::from_int(tw))).to_int()
+  } else {
+    initial_size
+  }
+}
+
+///|
+fn draw_flag_icon(
+  cx : Float,
+  cy : Float,
+  size : Float,
+  thick : Float,
+  pole_color : @raylib.Color,
+  flag_color : @raylib.Color,
+  base_color : @raylib.Color,
+) -> Unit {
+  // Flagpole
+  @raylib.draw_line_ex(
+    @raylib.Vector2::new(cx - size * 0.1, cy - size),
+    @raylib.Vector2::new(cx - size * 0.1, cy + size * 0.7),
+    thick,
+    pole_color,
+  )
+  // Flag triangle
+  @raylib.draw_triangle(
+    @raylib.Vector2::new(cx - size * 0.1, cy - size),
+    @raylib.Vector2::new(cx - size * 0.1, cy - size * 0.1),
+    @raylib.Vector2::new(cx + size * 0.7, cy - size * 0.55),
+    flag_color,
+  )
+  // Base line
+  @raylib.draw_line_ex(
+    @raylib.Vector2::new(cx - size * 0.5, cy + size * 0.7),
+    @raylib.Vector2::new(cx + size * 0.3, cy + size * 0.7),
+    thick,
+    base_color,
+  )
+}
+
+// ---- Render functions ----
+
+///|
+fn render() -> Unit {
+  @raylib.begin_drawing()
+  @raylib.clear_background(color_bg)
+  if game.state == state_menu {
+    render_menu()
+  } else if game.state == state_about {
+    render_about()
+  } else {
+    render_playing()
+  }
+  @raylib.end_drawing()
+}
+
+///|
+fn render_menu() -> Unit {
+  let sw = Float::from_int(screen.width)
+  let sh = Float::from_int(screen.height)
+  let max_tw = (sw * 0.9).to_int()
+  // Title
+  let title = "MINESWEEPER"
+  let title_size = fit_font_size(title, (sh / 12.0).to_int(), max_tw)
+  draw_text_hcentered(
+    title,
+    screen.width,
+    (sh / 6.0).to_int(),
+    title_size,
+    color_header_bg,
+  )
+  // Difficulty buttons
+  let btn_w = sw * menu_btn_width_ratio
+  let btn_h = sh * menu_btn_height_ratio
+  let btn_x = (sw - btn_w) / 2.0
+  let start_y = sh * menu_start_y_ratio
+  let spacing = btn_h * menu_btn_spacing_mult
+  let font_size = (btn_h * menu_font_ratio).to_int()
+  let labels = ["Easy (12x8)", "Medium (20x12)", "Hard (30x16)"]
+  let btn_colors = [
+    @raylib.Color::new(46, 204, 113, 255),
+    @raylib.Color::new(243, 156, 18, 255),
+    @raylib.Color::new(231, 76, 60, 255),
+  ]
+  for i = 0; i < 3; i = i + 1 {
+    let y = start_y + spacing * Float::from_int(i)
+    let rect = @raylib.Rectangle::new(btn_x, y, btn_w, btn_h)
+    @raylib.draw_rectangle_rounded(rect, btn_roundness, 8, btn_colors[i])
+    draw_text_centered_in_rect(
+      labels[i],
+      btn_x,
+      y,
+      btn_w,
+      btn_h,
+      font_size,
+      @raylib.white,
+    )
+  }
+  // About button
+  let about_w = sw * menu_about_width_ratio
+  let about_h = sh * menu_about_height_ratio
+  let about_x = (sw - about_w) / 2.0
+  let about_y = start_y + spacing * 3.0 + btn_h * 0.3
+  let about_font = (about_h * menu_font_ratio).to_int()
+  let about_rect = @raylib.Rectangle::new(
+    about_x, about_y, about_w, about_h,
+  )
+  @raylib.draw_rectangle_rounded(about_rect, btn_roundness, 8, color_header_bg)
+  draw_text_centered_in_rect(
+    "About",
+    about_x,
+    about_y,
+    about_w,
+    about_h,
+    about_font,
+    @raylib.white,
+  )
+}
+
+///|
+fn render_about() -> Unit {
+  let sw = Float::from_int(screen.width)
+  let sh = Float::from_int(screen.height)
+  let max_tw = (sw * 0.9).to_int()
+  // Title
+  let title_text = "ABOUT"
+  let title_size = fit_font_size(title_text, (sh / 14.0).to_int(), max_tw)
+  draw_text_hcentered(
+    title_text,
+    screen.width,
+    (sh * 0.12).to_int(),
+    title_size,
+    color_header_bg,
+  )
+  // App name
+  let name_text = "Minesweeper"
+  let name_size = fit_font_size(name_text, (sh / 16.0).to_int(), max_tw)
+  draw_text_hcentered(
+    name_text,
+    screen.width,
+    (sh * 0.30).to_int(),
+    name_size,
+    color_header_bg,
+  )
+  // Version
+  let ver_text = "Version 1.0"
+  let info_size = fit_font_size(ver_text, (sh / 28.0).to_int(), max_tw)
+  draw_text_hcentered(
+    ver_text,
+    screen.width,
+    (sh * 0.40).to_int(),
+    info_size,
+    @raylib.gray,
+  )
+  // Tech info
+  let tech_text = "Built with MoonBit + Raylib"
+  let tech_size = fit_font_size(tech_text, info_size, max_tw)
+  draw_text_hcentered(
+    tech_text,
+    screen.width,
+    (sh * 0.48).to_int(),
+    tech_size,
+    @raylib.gray,
+  )
+  // Back button
+  let back_w = sw * 0.4
+  let back_h = sh * 0.06
+  let back_x = (sw - back_w) / 2.0
+  let back_y = sh * 0.75
+  let back_font = (back_h * menu_font_ratio).to_int()
+  let back_rect = @raylib.Rectangle::new(back_x, back_y, back_w, back_h)
+  @raylib.draw_rectangle_rounded(back_rect, btn_roundness, 8, color_header_bg)
+  draw_text_centered_in_rect(
+    "Back",
+    back_x,
+    back_y,
+    back_w,
+    back_h,
+    back_font,
+    @raylib.white,
+  )
+}
+
+///|
+fn render_playing() -> Unit {
+  render_board()
+  render_header()
+  if game.state != state_playing {
+    render_game_over_overlay()
+  }
+}
+
+///|
+fn render_board() -> Unit {
+  let cam = make_camera()
+  @raylib.begin_mode_2d(cam)
+  // Pre-compute chord highlight info
+  let chord_highlight_active = highlight.is_chord &&
+    highlight.row >= 0 &&
+    highlight.col >= 0
+  let mut chord_flags_match = false
+  if chord_highlight_active {
+    let hidx = cell_index(highlight.row, highlight.col, game.cols)
+    let hcell = game.board[hidx]
+    let mut hflags = 0
+    for dr = -1; dr <= 1; dr = dr + 1 {
+      for dc = -1; dc <= 1; dc = dc + 1 {
+        let nr = highlight.row + dr
+        let nc = highlight.col + dc
+        if is_valid_cell(nr, nc, game.rows, game.cols) &&
+          game.board[cell_index(nr, nc, game.cols)].is_flagged {
+          hflags = hflags + 1
+        }
+      }
+    }
+    chord_flags_match = hflags == hcell.neighbor_mines
+  }
+  for r = 0; r < game.rows; r = r + 1 {
+    for c = 0; c < game.cols; c = c + 1 {
+      let x = layout_.offset_x + Float::from_int(c) * layout_.cell_size
+      let y = layout_.offset_y + Float::from_int(r) * layout_.cell_size
+      let pad = cell_padding
+      let rect = @raylib.Rectangle::new(
+        x + pad,
+        y + pad,
+        layout_.cell_size - pad * 2.0,
+        layout_.cell_size - pad * 2.0,
+      )
+      let idx = cell_index(r, c, game.cols)
+      let cell = game.board[idx]
+      if not(cell.is_revealed) {
+        // Unrevealed — flat rounded rectangle with checkerboard
+        let cell_color = if (r + c) % 2 == 0 {
+          color_unrevealed
+        } else {
+          color_unrevealed_alt
+        }
+        @raylib.draw_rectangle_rounded(rect, cell_roundness, 8, cell_color)
+        if cell.is_flagged {
+          // Flag icon
+          let cx = x + layout_.cell_size / 2.0
+          let cy = y + layout_.cell_size / 2.0
+          let fs = layout_.cell_size * 0.25
+          let thick = layout_.cell_size * 0.05
+          draw_flag_icon(cx, cy, fs, thick, @raylib.white, color_flag, @raylib.white)
+        }
+      } else if cell.has_mine {
+        // Mine cell — rounded red background with mine icon
+        @raylib.draw_rectangle_rounded(rect, cell_roundness, 8, color_mine_bg)
+        let cx = x + layout_.cell_size / 2.0
+        let cy = y + layout_.cell_size / 2.0
+        let mr = layout_.cell_size * 0.25
+        let thick = layout_.cell_size * 0.06
+        // Mine body
+        @raylib.draw_circle_v(
+          @raylib.Vector2::new(cx, cy),
+          mr,
+          color_mine_fg,
+        )
+        // Horizontal spike
+        @raylib.draw_line_ex(
+          @raylib.Vector2::new(cx - mr * 1.3, cy),
+          @raylib.Vector2::new(cx + mr * 1.3, cy),
+          thick,
+          color_mine_fg,
+        )
+        // Vertical spike
+        @raylib.draw_line_ex(
+          @raylib.Vector2::new(cx, cy - mr * 1.3),
+          @raylib.Vector2::new(cx, cy + mr * 1.3),
+          thick,
+          color_mine_fg,
+        )
+        // Diagonal spike (top-left to bottom-right)
+        let diag = mr * 0.92
+        @raylib.draw_line_ex(
+          @raylib.Vector2::new(cx - diag, cy - diag),
+          @raylib.Vector2::new(cx + diag, cy + diag),
+          thick,
+          color_mine_fg,
+        )
+        // Diagonal spike (top-right to bottom-left)
+        @raylib.draw_line_ex(
+          @raylib.Vector2::new(cx + diag, cy - diag),
+          @raylib.Vector2::new(cx - diag, cy + diag),
+          thick,
+          color_mine_fg,
+        )
+        // White highlight dot
+        @raylib.draw_circle_v(
+          @raylib.Vector2::new(cx - mr * 0.3, cy - mr * 0.3),
+          mr * 0.2,
+          @raylib.white,
+        )
+      } else {
+        // Revealed safe cell — flat rounded rectangle with checkerboard
+        let cell_color = if (r + c) % 2 == 0 {
+          color_revealed
+        } else {
+          color_revealed_alt
+        }
+        @raylib.draw_rectangle_rounded(rect, cell_roundness, 8, cell_color)
+        if cell.neighbor_mines > 0 {
+          let font_size = (layout_.cell_size * 0.55).to_int()
+          let num_text = cell.neighbor_mines.to_string()
+          let tw = @raylib.measure_text(num_text, font_size)
+          @raylib.draw_text(
+            num_text,
+            (x + (layout_.cell_size - Float::from_int(tw)) / 2.0).to_int(),
+            (y + (layout_.cell_size - Float::from_int(font_size)) / 2.0).to_int(),
+            font_size,
+            number_colors[cell.neighbor_mines],
+          )
+        }
+      }
+      // Draw highlight overlay
+      let should_highlight = if highlight.row == r &&
+        highlight.col == c {
+        true
+      } else if chord_highlight_active && chord_flags_match {
+        int_abs(r - highlight.row) <= 1 &&
+        int_abs(c - highlight.col) <= 1 &&
+        not(cell.is_revealed) &&
+        not(cell.is_flagged)
+      } else {
+        false
+      }
+      if should_highlight {
+        @raylib.draw_rectangle_rounded(rect, cell_roundness, 8, color_pressed)
+      }
+    }
+  }
+  @raylib.end_mode_2d()
+}
+
+///|
+fn render_header() -> Unit {
+  let sw = Float::from_int(screen.width)
+  let hh = screen.header_height
+  let header_rect = @raylib.Rectangle::new(0.0, 0.0, sw, hh)
+  @raylib.draw_rectangle_rounded(header_rect, 0.0, 1, color_header_bg)
+  let h_font_size = (hh * menu_font_ratio).to_int()
+  // Mine counter (left)
+  let mine_text = "\{game.total_mines - game.flag_count}"
+  @raylib.draw_text(
+    mine_text,
+    (sw * 0.05).to_int(),
+    ((hh - Float::from_int(h_font_size)) / 2.0).to_int(),
+    h_font_size,
+    color_flag,
+  )
+  // Restart button (center)
+  let btn_size = hh * restart_btn_ratio
+  let btn_x = (sw - btn_size) / 2.0
+  let btn_y = (hh - btn_size) / 2.0
+  let btn_rect = @raylib.Rectangle::new(btn_x, btn_y, btn_size, btn_size)
+  @raylib.draw_rectangle_rounded(btn_rect, btn_roundness, 8, color_btn_restart)
+  // Smiley face
+  let cx = btn_x + btn_size / 2.0
+  let cy = btn_y + btn_size / 2.0
+  let face_r = btn_size * 0.3
+  render_smiley(cx, cy, face_r)
+  // Mode toggle button
+  render_mode_button(hh, btn_x, btn_size)
+  // Timer (right)
+  let timer_text = "\{game.timer.to_int()}"
+  let tw = @raylib.measure_text(timer_text, h_font_size)
+  @raylib.draw_text(
+    timer_text,
+    (sw * 0.95 - Float::from_int(tw)).to_int(),
+    ((hh - Float::from_int(h_font_size)) / 2.0).to_int(),
+    h_font_size,
+    color_header_text,
+  )
+}
+
+///|
+fn render_smiley(cx : Float, cy : Float, face_r : Float) -> Unit {
+  @raylib.draw_circle_v(
+    @raylib.Vector2::new(cx, cy),
+    face_r,
+    color_btn_restart,
+  )
+  // Eyes
+  @raylib.draw_circle_v(
+    @raylib.Vector2::new(cx - face_r * 0.35, cy - face_r * 0.2),
+    face_r * 0.12,
+    color_header_bg,
+  )
+  @raylib.draw_circle_v(
+    @raylib.Vector2::new(cx + face_r * 0.35, cy - face_r * 0.2),
+    face_r * 0.12,
+    color_header_bg,
+  )
+  // Mouth
+  if game.state == state_lost {
+    @raylib.draw_line_ex(
+      @raylib.Vector2::new(cx - face_r * 0.3, cy + face_r * 0.3),
+      @raylib.Vector2::new(cx + face_r * 0.3, cy + face_r * 0.3),
+      2.0,
+      color_header_bg,
+    )
+  } else {
+    @raylib.draw_circle_sector(
+      @raylib.Vector2::new(cx, cy + face_r * 0.1),
+      face_r * 0.35,
+      0.0,
+      180.0,
+      16,
+      color_header_bg,
+    )
+  }
+}
+
+///|
+fn render_mode_button(
+  hh : Float,
+  restart_btn_x : Float,
+  restart_btn_size : Float,
+) -> Unit {
+  let mode_btn_size = hh * mode_btn_ratio
+  let mode_btn_x = restart_btn_x + restart_btn_size + hh * mode_btn_gap_ratio
+  let mode_btn_y = (hh - mode_btn_size) / 2.0
+  let mode_btn_rect = @raylib.Rectangle::new(
+    mode_btn_x, mode_btn_y, mode_btn_size, mode_btn_size,
+  )
+  let mode_btn_color = if game.current_mode == mode_dig {
+    color_unrevealed
+  } else {
+    color_flag
+  }
+  @raylib.draw_rectangle_rounded(mode_btn_rect, btn_roundness, 8, mode_btn_color)
+  let mcx = mode_btn_x + mode_btn_size / 2.0
+  let mcy = mode_btn_y + mode_btn_size / 2.0
+  if game.current_mode == mode_dig {
+    // Dig mode icon: white circle (reveal indicator)
+    @raylib.draw_circle_v(
+      @raylib.Vector2::new(mcx, mcy),
+      mode_btn_size * 0.2,
+      @raylib.white,
+    )
+  } else {
+    // Flag mode icon: white flag
+    let mfs = mode_btn_size * 0.2
+    let mthick = mode_btn_size * 0.06
+    draw_flag_icon(mcx, mcy, mfs, mthick, @raylib.white, @raylib.white, @raylib.white)
+  }
+}
+
+///|
+fn render_game_over_overlay() -> Unit {
+  let sw = Float::from_int(screen.width)
+  let sh = Float::from_int(screen.height)
+  // Dark overlay
+  @raylib.draw_rectangle(0, 0, screen.width, screen.height, color_overlay)
+  // White card
+  let card_w = sw * card_width_ratio
+  let card_h = sh * card_height_ratio
+  let card_x = (sw - card_w) / 2.0
+  let card_y = sh * card_y_ratio
+  let card_rect = @raylib.Rectangle::new(card_x, card_y, card_w, card_h)
+  @raylib.draw_rectangle_rounded(card_rect, 0.1, 8, @raylib.white)
+  // Win/Loss message
+  let msg = if game.state == state_won {
+    "YOU WIN!"
+  } else {
+    "GAME OVER"
+  }
+  let msg_color = if game.state == state_won {
+    color_win
+  } else {
+    color_lose
+  }
+  let max_msg_w = (card_w * 0.9).to_int()
+  let msg_size = fit_font_size(msg, (card_h * 0.35).to_int(), max_msg_w)
+  draw_text_hcentered(
+    msg,
+    screen.width,
+    (card_y + card_h * 0.2).to_int(),
+    msg_size,
+    msg_color,
+  )
+  // Subtitle
+  let sub_size = (card_h * 0.18).to_int()
+  let sub = "Tap to continue"
+  draw_text_hcentered(
+    sub,
+    screen.width,
+    (card_y + card_h * 0.65).to_int(),
+    sub_size,
+    @raylib.gray,
+  )
+}
