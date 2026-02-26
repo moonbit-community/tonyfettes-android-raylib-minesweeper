@@ -1,3 +1,0 @@
-[submodule "app/src/main/moonbit/external/raylib"]
-	path = app/src/main/moonbit/external/raylib
-	url = https://github.com/moonbit-community/tonyfettes-raylib.git

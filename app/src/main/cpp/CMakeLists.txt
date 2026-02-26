@@ -12,8 +12,8 @@ else()
     set(MOON_HOME "$ENV{HOME}/.moon")
 endif()
 
-# Raylib + MoonBit bindings from git submodule (single source of truth)
-set(RAYLIB_BINDINGS_DIR ${MOONBIT_DIR}/external/raylib/internal/raylib)
+# Raylib + MoonBit bindings from mooncakes.io (tonyfettes/raylib)
+set(RAYLIB_BINDINGS_DIR ${MOONBIT_DIR}/.mooncakes/tonyfettes/raylib/internal/raylib)
 set(RAYLIB_SRC_DIR ${RAYLIB_BINDINGS_DIR})
 
 # --- Find moon CLI ---
@@ -29,7 +29,7 @@ add_custom_command(
     COMMENT "Compiling MoonBit to C"
 )
 
-# --- Step 2: Build raylib static library (from bindings submodule) ---
+# --- Step 2: Build raylib static library (from mooncakes dependency) ---
 add_library(raylib STATIC
     ${RAYLIB_SRC_DIR}/rcore.c
     ${RAYLIB_SRC_DIR}/rshapes.c

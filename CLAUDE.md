@@ -11,6 +11,9 @@ Android Minesweeper game written in MoonBit with Raylib for graphics. The game l
 This is an Android Gradle project. The MoonBit compiler (`moon`) must be on PATH.
 
 ```bash
+# Install MoonBit dependencies (downloads tonyfettes/raylib from mooncakes.io)
+cd app/src/main/moonbit && moon install
+
 # Build debug APK (triggers MoonBit compilation + CMake native build)
 ./gradlew assembleDebug
 
@@ -33,7 +36,7 @@ cd app/src/main/moonbit && moon fmt && moon info
 The build has three stages orchestrated by CMake (`app/src/main/cpp/CMakeLists.txt`):
 
 1. **MoonBit → C**: `moon build --target native` compiles `.mbt` files to a single C file (`_build/native/debug/build/raylibminesweeper.c`)
-2. **Raylib static lib**: Vendored Raylib 5.5 sources compiled with `PLATFORM_ANDROID` + `GRAPHICS_API_OPENGL_ES2`
+2. **Raylib static lib**: Raylib 5.5 sources (from `tonyfettes/raylib` mooncakes dependency) compiled with `PLATFORM_ANDROID` + `GRAPHICS_API_OPENGL_ES2`
 3. **Shared library**: Generated C + MoonBit runtime + C stub layer + Raylib linked into `libraylibminesweeper.so`
 
 ## Architecture
@@ -42,10 +45,10 @@ The build has three stages orchestrated by CMake (`app/src/main/cpp/CMakeLists.t
 Android (MainActivity.kt - thin NativeActivity wrapper)
   └─ Native library (libraylibminesweeper.so)
        ├─ MoonBit game code (app/src/main/moonbit/*.mbt)
-       ├─ Raylib FFI bindings (app/src/main/moonbit/external/raylib/)
+       ├─ Raylib FFI bindings (mooncakes: tonyfettes/raylib)
        │    ├─ Public wrappers: type-safe API with Bytes serialization
        │    └─ internal/raylib/: extern "c" decls + C stub files
-       └─ Raylib 5.5 (vendored C sources)
+       └─ Raylib 5.5 (C sources from tonyfettes/raylib)
 ```
 
 ### Key files
@@ -56,15 +59,15 @@ Android (MainActivity.kt - thin NativeActivity wrapper)
 - `app/src/main/moonbit/camera.mbt` — `CameraState`/`LayoutState` structs, `clamp`/`float_max`, camera functions (`calculate_layout`, `init_camera`, `clamp_camera`, `make_camera`, `screen_to_board`)
 - `app/src/main/moonbit/input.mbt` — `TouchState`/`PinchState`/`PanState`/`HighlightState` structs, gesture constants, `point_in_rect`, all input/update handling
 - `app/src/main/moonbit/render.mbt` — Color constants, layout constants, drawing helpers (`draw_text_centered_in_rect`, `fit_font_size`, `draw_flag_icon`), all rendering
-- `app/src/main/moonbit/moon.mod.json` — MoonBit module config; depends on `tonyfettes/raylib` via local path
+- `app/src/main/moonbit/moon.mod.json` — MoonBit module config; depends on `tonyfettes/raylib` from mooncakes.io
 - `app/src/main/moonbit/moon.pkg` — Package config; imports `tonyfettes/raylib`, marked as main
 - `app/src/main/cpp/CMakeLists.txt` — Orchestrates MoonBit→C compilation, Raylib build, and final linking
 - `app/src/main/java/.../MainActivity.kt` — Android entry point; keeps screen on, hides system bars
-- `app/src/main/moonbit/external/raylib/` — Git submodule with Raylib MoonBit bindings (has its own CLAUDE.md)
+- `app/src/main/moonbit/.mooncakes/tonyfettes/raylib/` — Raylib MoonBit bindings (downloaded from mooncakes.io)
 
 ### FFI pattern (Raylib bindings)
 
-MoonBit structs (Color, Vector2, Rectangle, Camera2D) are serialized to `Bytes` via `to_bytes()`, passed to C stubs that `memcpy` into native structs, call Raylib, and serialize results back. Passthrough functions (primitives only) are re-exported directly via `pub using @raylib.{ ... }`. See `external/raylib/CLAUDE.md` for binding-specific rules.
+MoonBit structs (Color, Vector2, Rectangle, Camera2D) are serialized to `Bytes` via `to_bytes()`, passed to C stubs that `memcpy` into native structs, call Raylib, and serialize results back. Passthrough functions (primitives only) are re-exported directly via `pub using @raylib.{ ... }`. See `.mooncakes/tonyfettes/raylib/CLAUDE.md` for binding-specific rules.
 
 ### Game state
 
@@ -75,7 +78,7 @@ Mutable state is organized into module-level structs with `mut` fields: `screen`
 - Use the `/moonbit-agent-guide` skill when working with MoonBit code
 - Target is always `native` (no WASM)
 - After modifying `.mbt` files, run `moon fmt` to format and `moon info` to regenerate `pkg.generated.mbti`
-- The raylib bindings submodule has its own FFI rules — read `external/raylib/CLAUDE.md` before modifying bindings
+- The raylib bindings package has its own FFI rules — read `.mooncakes/tonyfettes/raylib/CLAUDE.md` before modifying bindings
 - Never use `self` as a parameter name in `extern "c"` declarations
 - Use `#borrow(param)` annotation on extern functions taking opaque pointer types
 

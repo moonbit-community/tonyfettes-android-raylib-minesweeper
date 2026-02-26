@@ -2,9 +2,7 @@
   "name": "tonyfettes/raylibminesweeper",
   "version": "0.1.0",
   "deps": {
-    "tonyfettes/raylib": {
-      "path": "external/raylib"
-    }
+    "tonyfettes/raylib": "0.1.0"
   },
   "preferred-target": "native"
 }
