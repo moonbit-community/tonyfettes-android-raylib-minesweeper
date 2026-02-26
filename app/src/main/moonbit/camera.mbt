@@ -158,10 +158,7 @@ fn make_camera() -> @raylib.Camera2D {
 ///|
 fn screen_to_board(sx : Float, sy : Float) -> (Float, Float) {
   let cam = make_camera()
-  let world = @raylib.get_screen_to_world_2d(
-    @raylib.Vector2::new(sx, sy),
-    cam,
-  )
+  let world = @raylib.get_screen_to_world_2d(@raylib.Vector2::new(sx, sy), cam)
   (world.x, world.y)
 }
 

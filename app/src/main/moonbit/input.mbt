@@ -328,37 +328,27 @@ fn handle_touch_held(touch_count : Int) -> Unit {
       let t1 = @raylib.get_touch_position(1)
       let current_dist = vector2_distance(t0, t1)
       if pinch.start_dist > 1.0 {
-        let mid = @raylib.Vector2::new(
-          (t0.x + t1.x) / 2.0,
-          (t0.y + t1.y) / 2.0,
-        )
+        let mid = @raylib.Vector2::new((t0.x + t1.x) / 2.0, (t0.y + t1.y) / 2.0)
         // World position before zoom
         let cam_before = make_camera()
         let world_before = @raylib.get_screen_to_world_2d(mid, cam_before)
         // Apply new zoom
-        let new_zoom = pinch.start_zoom *
-          (current_dist / pinch.start_dist)
+        let new_zoom = pinch.start_zoom * (current_dist / pinch.start_dist)
         camera.zoom = clamp(new_zoom, camera.min_zoom, camera.max_zoom)
         // World position after zoom
         let cam_after = make_camera()
         let world_after = @raylib.get_screen_to_world_2d(mid, cam_after)
         // Stabilize midpoint
-        camera.target_x = camera.target_x +
-          world_before.x -
-          world_after.x
-        camera.target_y = camera.target_y +
-          world_before.y -
-          world_after.y
+        camera.target_x = camera.target_x + world_before.x - world_after.x
+        camera.target_y = camera.target_y + world_before.y - world_after.y
       }
     }
     clamp_camera()
   }
   // Handle pan
   if touch.active_gesture == gesture_pan {
-    camera.target_x = pan.start_target_x -
-      (pos.x - pan.start_x) / camera.zoom
-    camera.target_y = pan.start_target_y -
-      (pos.y - pan.start_y) / camera.zoom
+    camera.target_x = pan.start_target_x - (pos.x - pan.start_x) / camera.zoom
+    camera.target_y = pan.start_target_y - (pos.y - pan.start_y) / camera.zoom
     clamp_camera()
   }
   // Long press detection — only set flag, defer execution to release
@@ -396,13 +386,13 @@ fn handle_touch_release() -> Unit {
     let mode_btn_x = restart_btn_x + restart_btn_size + hh * mode_btn_gap_ratio
     let mode_btn_y = (hh - mode_btn_size) / 2.0
     if point_in_rect(
-      touch.start_x,
-      touch.start_y,
-      mode_btn_x,
-      mode_btn_y,
-      mode_btn_size,
-      mode_btn_size,
-    ) {
+        touch.start_x,
+        touch.start_y,
+        mode_btn_x,
+        mode_btn_y,
+        mode_btn_size,
+        mode_btn_size,
+      ) {
       // Toggle mode
       game.current_mode = if game.current_mode == mode_dig {
         mode_flag
@@ -415,13 +405,13 @@ fn handle_touch_release() -> Unit {
       let btn_x = (sw - btn_size) / 2.0
       let btn_y = (hh - btn_size) / 2.0
       if point_in_rect(
-        touch.start_x,
-        touch.start_y,
-        btn_x,
-        btn_y,
-        btn_size,
-        btn_size,
-      ) {
+          touch.start_x,
+          touch.start_y,
+          btn_x,
+          btn_y,
+          btn_size,
+          btn_size,
+        ) {
         game.state = state_menu
       } else {
         // Cell operation
@@ -445,13 +435,7 @@ fn handle_cell_tap(row : Int, col : Int) -> Unit {
   let cell = game.board[idx]
   if cell.is_revealed && cell.neighbor_mines > 0 {
     // Chord reveal (works in both modes)
-    let hit_mine = chord_reveal(
-      game.board,
-      game.rows,
-      game.cols,
-      row,
-      col,
-    )
+    let hit_mine = chord_reveal(game.board, game.rows, game.cols, row, col)
     if hit_mine {
       game.state = state_lost
     } else if check_win() {
@@ -460,21 +444,8 @@ fn handle_cell_tap(row : Int, col : Int) -> Unit {
   } else if game.first_click {
     // First click: always dig regardless of mode
     game.first_click = false
-    place_mines(
-      game.board,
-      game.rows,
-      game.cols,
-      game.total_mines,
-      row,
-      col,
-    )
-    let hit_mine = reveal_cell(
-      game.board,
-      game.rows,
-      game.cols,
-      row,
-      col,
-    )
+    place_mines(game.board, game.rows, game.cols, game.total_mines, row, col)
+    let hit_mine = reveal_cell(game.board, game.rows, game.cols, row, col)
     if hit_mine {
       game.state = state_lost
     } else if check_win() {
@@ -485,13 +456,7 @@ fn handle_cell_tap(row : Int, col : Int) -> Unit {
     toggle_flag(game.board, game.rows, game.cols, row, col)
   } else {
     // Dig mode
-    let hit_mine = reveal_cell(
-      game.board,
-      game.rows,
-      game.cols,
-      row,
-      col,
-    )
+    let hit_mine = reveal_cell(game.board, game.rows, game.cols, row, col)
     if hit_mine {
       game.state = state_lost
     } else if check_win() {

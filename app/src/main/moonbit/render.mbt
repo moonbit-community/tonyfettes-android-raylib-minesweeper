@@ -261,18 +261,10 @@ fn render_menu() -> Unit {
   let about_x = (sw - about_w) / 2.0
   let about_y = start_y + spacing * 3.0 + btn_h * 0.3
   let about_font = (about_h * menu_font_ratio).to_int()
-  let about_rect = @raylib.Rectangle::new(
-    about_x, about_y, about_w, about_h,
-  )
+  let about_rect = @raylib.Rectangle::new(about_x, about_y, about_w, about_h)
   @raylib.draw_rectangle_rounded(about_rect, btn_roundness, 8, color_header_bg)
   draw_text_centered_in_rect(
-    "About",
-    about_x,
-    about_y,
-    about_w,
-    about_h,
-    about_font,
-    @raylib.white,
+    "About", about_x, about_y, about_w, about_h, about_font, @raylib.white,
   )
 }
 
@@ -330,13 +322,7 @@ fn render_about() -> Unit {
   let back_rect = @raylib.Rectangle::new(back_x, back_y, back_w, back_h)
   @raylib.draw_rectangle_rounded(back_rect, btn_roundness, 8, color_header_bg)
   draw_text_centered_in_rect(
-    "Back",
-    back_x,
-    back_y,
-    back_w,
-    back_h,
-    back_font,
-    @raylib.white,
+    "Back", back_x, back_y, back_w, back_h, back_font, @raylib.white,
   )
 }
 
@@ -401,7 +387,9 @@ fn render_board() -> Unit {
           let cy = y + layout_.cell_size / 2.0
           let fs = layout_.cell_size * 0.25
           let thick = layout_.cell_size * 0.05
-          draw_flag_icon(cx, cy, fs, thick, @raylib.white, color_flag, @raylib.white)
+          draw_flag_icon(
+            cx, cy, fs, thick, @raylib.white, color_flag, @raylib.white,
+          )
         }
       } else if cell.has_mine {
         // Mine cell — rounded red background with mine icon
@@ -411,11 +399,7 @@ fn render_board() -> Unit {
         let mr = layout_.cell_size * 0.25
         let thick = layout_.cell_size * 0.06
         // Mine body
-        @raylib.draw_circle_v(
-          @raylib.Vector2::new(cx, cy),
-          mr,
-          color_mine_fg,
-        )
+        @raylib.draw_circle_v(@raylib.Vector2::new(cx, cy), mr, color_mine_fg)
         // Horizontal spike
         @raylib.draw_line_ex(
           @raylib.Vector2::new(cx - mr * 1.3, cy),
@@ -473,8 +457,7 @@ fn render_board() -> Unit {
         }
       }
       // Draw highlight overlay
-      let should_highlight = if highlight.row == r &&
-        highlight.col == c {
+      let should_highlight = if highlight.row == r && highlight.col == c {
         true
       } else if chord_highlight_active && chord_flags_match {
         int_abs(r - highlight.row) <= 1 &&
@@ -535,11 +518,7 @@ fn render_header() -> Unit {
 
 ///|
 fn render_smiley(cx : Float, cy : Float, face_r : Float) -> Unit {
-  @raylib.draw_circle_v(
-    @raylib.Vector2::new(cx, cy),
-    face_r,
-    color_btn_restart,
-  )
+  @raylib.draw_circle_v(@raylib.Vector2::new(cx, cy), face_r, color_btn_restart)
   // Eyes
   @raylib.draw_circle_v(
     @raylib.Vector2::new(cx - face_r * 0.35, cy - face_r * 0.2),
@@ -588,7 +567,9 @@ fn render_mode_button(
   } else {
     color_flag
   }
-  @raylib.draw_rectangle_rounded(mode_btn_rect, btn_roundness, 8, mode_btn_color)
+  @raylib.draw_rectangle_rounded(
+    mode_btn_rect, btn_roundness, 8, mode_btn_color,
+  )
   let mcx = mode_btn_x + mode_btn_size / 2.0
   let mcy = mode_btn_y + mode_btn_size / 2.0
   if game.current_mode == mode_dig {
@@ -602,7 +583,9 @@ fn render_mode_button(
     // Flag mode icon: white flag
     let mfs = mode_btn_size * 0.2
     let mthick = mode_btn_size * 0.06
-    draw_flag_icon(mcx, mcy, mfs, mthick, @raylib.white, @raylib.white, @raylib.white)
+    draw_flag_icon(
+      mcx, mcy, mfs, mthick, @raylib.white, @raylib.white, @raylib.white,
+    )
   }
 }
 
@@ -620,16 +603,8 @@ fn render_game_over_overlay() -> Unit {
   let card_rect = @raylib.Rectangle::new(card_x, card_y, card_w, card_h)
   @raylib.draw_rectangle_rounded(card_rect, 0.1, 8, @raylib.white)
   // Win/Loss message
-  let msg = if game.state == state_won {
-    "YOU WIN!"
-  } else {
-    "GAME OVER"
-  }
-  let msg_color = if game.state == state_won {
-    color_win
-  } else {
-    color_lose
-  }
+  let msg = if game.state == state_won { "YOU WIN!" } else { "GAME OVER" }
+  let msg_color = if game.state == state_won { color_win } else { color_lose }
   let max_msg_w = (card_w * 0.9).to_int()
   let msg_size = fit_font_size(msg, (card_h * 0.35).to_int(), max_msg_w)
   draw_text_hcentered(
