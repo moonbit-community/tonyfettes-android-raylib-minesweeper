@@ -85,8 +85,18 @@ Mutable state is organized into module-level structs with `mut` fields: `screen`
 
 ## Releasing
 
-When publishing a GitHub release, always attach the release APK:
+Version is defined in `app/build.gradle.kts` (`versionCode` and `versionName` in `defaultConfig`).
 
-1. Build the release APK: `./gradlew assembleRelease`
-2. The APK is at `app/build/outputs/apk/release/app-release.apk`
-3. Upload it to the release: `gh release upload <tag> app/build/outputs/apk/release/app-release.apk`
+1. Bump version in `app/build.gradle.kts`:
+   - Increment `versionCode` by 1
+   - Update `versionName` to the new version (e.g. `"0.2.0"`)
+2. Commit: `git commit -am "chore: bump version to <version>"`
+3. Build the release APK: `./gradlew assembleRelease`
+   - Output: `app/build/outputs/apk/release/app-release.apk`
+4. Tag the commit: `git tag v<version>`
+5. Push: `git push && git push --tags`
+6. Create GitHub release with APK:
+   ```bash
+   gh release create v<version> app/build/outputs/apk/release/app-release.apk \
+     --title "v<version>" --generate-notes
+   ```
