@@ -52,7 +52,7 @@ fn point_in_rect(
 // ---- Touch state ----
 
 ///|
-struct TouchState {
+priv struct TouchState {
   mut start_x : Float
   mut start_y : Float
   mut timer : Float
@@ -78,7 +78,7 @@ fn TouchState::new() -> TouchState {
 // ---- Pinch state ----
 
 ///|
-struct PinchState {
+priv struct PinchState {
   mut start_dist : Float
   mut start_zoom : Float
 }
@@ -91,7 +91,7 @@ fn PinchState::new() -> PinchState {
 // ---- Pan state ----
 
 ///|
-struct PanState {
+priv struct PanState {
   mut start_x : Float
   mut start_y : Float
   mut start_target_x : Float
@@ -106,7 +106,7 @@ fn PanState::new() -> PanState {
 // ---- Highlight state ----
 
 ///|
-struct HighlightState {
+priv struct HighlightState {
   mut row : Int
   mut col : Int
   mut is_chord : Bool

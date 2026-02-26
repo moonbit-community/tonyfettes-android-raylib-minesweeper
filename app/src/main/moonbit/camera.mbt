@@ -33,7 +33,7 @@ fn float_max(a : Float, b : Float) -> Float {
 // ---- Layout state ----
 
 ///|
-struct LayoutState {
+priv struct LayoutState {
   mut cell_size : Float
   mut offset_x : Float
   mut offset_y : Float
@@ -47,7 +47,7 @@ fn LayoutState::new() -> LayoutState {
 // ---- Camera state ----
 
 ///|
-struct CameraState {
+priv struct CameraState {
   mut offset_x : Float
   mut offset_y : Float
   mut target_x : Float

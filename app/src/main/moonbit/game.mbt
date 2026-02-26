@@ -62,7 +62,7 @@ let header_height_ratio : Float = 0.08
 // ---- Screen state ----
 
 ///|
-struct ScreenState {
+priv struct ScreenState {
   mut width : Int
   mut height : Int
   mut header_height : Float
@@ -80,7 +80,7 @@ fn ScreenState::new(w : Int, h : Int) -> ScreenState {
 // ---- Game state ----
 
 ///|
-struct GameState {
+priv struct GameState {
   mut state : Int
   mut rows : Int
   mut cols : Int

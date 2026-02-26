@@ -6,23 +6,6 @@ package "tonyfettes/raylibminesweeper"
 // Errors
 
 // Types and methods
-type CameraState
-
-type Cell
-
-type GameState
-
-type HighlightState
-
-type LayoutState
-
-type PanState
-
-type PinchState
-
-type ScreenState
-
-type TouchState
 
 // Type aliases
 

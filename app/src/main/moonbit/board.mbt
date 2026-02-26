@@ -1,7 +1,7 @@
 // Board logic: Cell struct, board helpers, and cell operations
 
 ///|
-struct Cell {
+priv struct Cell {
   mut has_mine : Bool
   mut is_revealed : Bool
   mut is_flagged : Bool
