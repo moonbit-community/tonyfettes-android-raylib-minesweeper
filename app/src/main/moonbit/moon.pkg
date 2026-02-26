@@ -1,2 +1,7 @@
-import { "tonyfettes/raylib" }
-options("is-main": true)
+import {
+  "tonyfettes/raylib",
+}
+
+options(
+  "is-main": true,
+)
