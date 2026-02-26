@@ -37,27 +37,30 @@ let easy_cols : Int = 8
 let easy_mines : Int = 10
 
 ///|
-let medium_rows : Int = 20
+let medium_rows : Int = 14
 
 ///|
-let medium_cols : Int = 12
+let medium_cols : Int = 9
 
 ///|
-let medium_mines : Int = 40
+let medium_mines : Int = 25
 
 ///|
-let hard_rows : Int = 30
+let hard_rows : Int = 16
 
 ///|
-let hard_cols : Int = 16
+let hard_cols : Int = 10
 
 ///|
-let hard_mines : Int = 99
+let hard_mines : Int = 35
 
 // ---- Layout ratio ----
 
 ///|
 let header_height_ratio : Float = 0.08
+
+///|
+let footer_height_ratio : Float = 0.07
 
 // ---- Screen state ----
 
@@ -66,6 +69,7 @@ priv struct ScreenState {
   mut width : Int
   mut height : Int
   mut header_height : Float
+  mut footer_height : Float
 }
 
 ///|
@@ -74,6 +78,7 @@ fn ScreenState::new(w : Int, h : Int) -> ScreenState {
     width: w,
     height: h,
     header_height: Float::from_int(h) * header_height_ratio,
+    footer_height: Float::from_int(h) * footer_height_ratio,
   }
 }
 

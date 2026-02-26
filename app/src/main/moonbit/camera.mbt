@@ -86,7 +86,7 @@ fn calculate_layout() -> Unit {
   let sh = Float::from_int(screen.height)
   let margin = sw * board_margin_ratio
   let avail_w = sw - margin * 2.0
-  let avail_h = sh - screen.header_height - margin * 2.0
+  let avail_h = sh - screen.header_height - screen.footer_height - margin * 2.0
   let cell_w = avail_w / Float::from_int(game.cols)
   let cell_h = avail_h / Float::from_int(game.rows)
   layout_.cell_size = if cell_w < cell_h { cell_w } else { cell_h }
@@ -94,12 +94,14 @@ fn calculate_layout() -> Unit {
   let board_h = layout_.cell_size * Float::from_int(game.rows)
   layout_.offset_x = (sw - board_w) / 2.0
   layout_.offset_y = screen.header_height +
-    (sh - screen.header_height - board_h) / 2.0
+    (sh - screen.header_height - screen.footer_height - board_h) / 2.0
 }
 
 ///|
 fn init_camera() -> Unit {
-  let avail_h = Float::from_int(screen.height) - screen.header_height
+  let avail_h = Float::from_int(screen.height) -
+    screen.header_height -
+    screen.footer_height
   camera.offset_x = Float::from_int(screen.width) / 2.0
   camera.offset_y = screen.header_height + avail_h / 2.0
   camera.target_x = layout_.offset_x +
@@ -126,7 +128,9 @@ fn clamp_camera() -> Unit {
   let board_h = Float::from_int(game.rows) * layout_.cell_size
   let board_cx = layout_.offset_x + board_w / 2.0
   let board_cy = layout_.offset_y + board_h / 2.0
-  let avail_h = Float::from_int(screen.height) - screen.header_height
+  let avail_h = Float::from_int(screen.height) -
+    screen.header_height -
+    screen.footer_height
   let vis_w = sw / camera.zoom
   let vis_h = avail_h / camera.zoom
   if board_w + margin * 2.0 > vis_w {

@@ -172,6 +172,7 @@ fn update_screen_resize() -> Unit {
     screen.width = new_w
     screen.height = new_h
     screen.header_height = Float::from_int(new_h) * header_height_ratio
+    screen.footer_height = Float::from_int(new_h) * footer_height_ratio
     if game.state == state_playing ||
       game.state == state_won ||
       game.state == state_lost {
@@ -379,19 +380,20 @@ fn handle_touch_release() -> Unit {
   } else if touch.active_gesture == tap_or_hold &&
     not(touch.long_press_triggered) &&
     touch.move_dist < tap_max_dist {
-    // Short tap — check mode toggle button first
-    let mode_btn_size = hh * mode_btn_ratio
-    let restart_btn_size = hh * restart_btn_ratio
-    let restart_btn_x = (sw - restart_btn_size) / 2.0
-    let mode_btn_x = restart_btn_x + restart_btn_size + hh * mode_btn_gap_ratio
-    let mode_btn_y = (hh - mode_btn_size) / 2.0
+    // Short tap — check FAB mode toggle at bottom center
+    let sh = Float::from_int(screen.height)
+    let fab_size = screen.footer_height * 0.75
+    let fab_x = (sw - fab_size) / 2.0
+    let fab_y = sh -
+      screen.footer_height +
+      (screen.footer_height - fab_size) / 2.0
     if point_in_rect(
         touch.start_x,
         touch.start_y,
-        mode_btn_x,
-        mode_btn_y,
-        mode_btn_size,
-        mode_btn_size,
+        fab_x,
+        fab_y,
+        fab_size,
+        fab_size,
       ) {
       // Toggle mode
       game.current_mode = if game.current_mode == mode_dig {
@@ -413,8 +415,8 @@ fn handle_touch_release() -> Unit {
           btn_size,
         ) {
         game.state = state_menu
-      } else {
-        // Cell operation
+      } else if touch.start_y > hh && touch.start_y < sh - screen.footer_height {
+        // Cell operation (only in board area, between header and footer)
         let (wx, wy) = screen_to_board(touch.start_x, touch.start_y)
         let row = get_cell_row(wy)
         let col = get_cell_col(wx)

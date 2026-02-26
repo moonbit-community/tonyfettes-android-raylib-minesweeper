@@ -135,12 +135,6 @@ let menu_about_height_ratio : Float = 0.055
 let restart_btn_ratio : Float = 0.7
 
 ///|
-let mode_btn_ratio : Float = 0.65
-
-///|
-let mode_btn_gap_ratio : Float = 0.15
-
-///|
 let card_width_ratio : Float = 0.7
 
 ///|
@@ -302,7 +296,7 @@ fn render_menu() -> Unit {
   let start_y = sh * menu_start_y_ratio
   let spacing = btn_h * menu_btn_spacing_mult
   let font_size = (btn_h * menu_font_ratio).to_int()
-  let labels = ["Easy (12x8)", "Medium (20x12)", "Hard (30x16)"]
+  let labels = ["Easy (12x8)", "Medium (14x9)", "Hard (16x10)"]
   let btn_colors = [color_btn_easy, color_btn_medium, color_btn_hard]
   let shadow_off = btn_h * 0.04
   for i = 0; i < 3; i = i + 1 {
@@ -428,6 +422,7 @@ fn render_about() -> Unit {
 fn render_playing() -> Unit {
   render_board()
   render_header()
+  render_footer()
   if game.state != state_playing {
     render_game_over_overlay()
   }
@@ -599,11 +594,15 @@ fn render_header() -> Unit {
   // Bottom edge line for crisp separation
   @raylib.draw_rectangle(0, hh.to_int() - 1, screen.width, 1, color_header_edge)
   let h_font_size = (hh * menu_font_ratio).to_int()
-  // Mine counter (left) — white text for cleaner look
+  // Mine icon + counter (left)
+  let icon_r = hh * 0.12
+  let icon_cx = sw * 0.05 + icon_r
+  let icon_cy = hh / 2.0
+  draw_mine_icon_small(icon_cx, icon_cy, icon_r, color_header_text)
   let mine_text = "\{game.total_mines - game.flag_count}"
   @raylib.draw_text(
     mine_text,
-    (sw * 0.05).to_int(),
+    (icon_cx + icon_r * 1.8).to_int(),
     ((hh - Float::from_int(h_font_size)) / 2.0).to_int(),
     h_font_size,
     color_header_text,
@@ -624,106 +623,189 @@ fn render_header() -> Unit {
   )
   let btn_rect = @raylib.Rectangle::new(btn_x, btn_y, btn_size, btn_size)
   @raylib.draw_rectangle_rounded(btn_rect, btn_roundness, 8, color_btn_restart)
-  // Smiley face
+  // Restart icon (circular arrow)
   let cx = btn_x + btn_size / 2.0
   let cy = btn_y + btn_size / 2.0
-  let face_r = btn_size * 0.3
-  render_smiley(cx, cy, face_r)
-  // Mode toggle button
-  render_mode_button(hh, btn_x, btn_size)
-  // Timer (right)
+  let icon_size = btn_size * 0.28
+  render_restart_icon(cx, cy, icon_size, color_header_bg)
+  // Clock icon + timer (right)
   let timer_text = "\{game.timer.to_int()}"
   let tw = @raylib.measure_text(timer_text, h_font_size)
+  let timer_right = sw * 0.95
+  let timer_x = timer_right - Float::from_int(tw)
   @raylib.draw_text(
     timer_text,
-    (sw * 0.95 - Float::from_int(tw)).to_int(),
+    timer_x.to_int(),
     ((hh - Float::from_int(h_font_size)) / 2.0).to_int(),
     h_font_size,
     color_header_text,
   )
+  let clock_cx = timer_x - icon_r * 1.8
+  draw_clock_icon(clock_cx, hh / 2.0, icon_r, color_header_text)
 }
 
 ///|
-fn render_smiley(cx : Float, cy : Float, face_r : Float) -> Unit {
-  @raylib.draw_circle_v(@raylib.Vector2::new(cx, cy), face_r, color_btn_restart)
-  // Eyes
-  @raylib.draw_circle_v(
-    @raylib.Vector2::new(cx - face_r * 0.35, cy - face_r * 0.2),
-    face_r * 0.12,
-    color_header_bg,
-  )
-  @raylib.draw_circle_v(
-    @raylib.Vector2::new(cx + face_r * 0.35, cy - face_r * 0.2),
-    face_r * 0.12,
-    color_header_bg,
-  )
-  // Mouth
-  if game.state == state_lost {
-    @raylib.draw_line_ex(
-      @raylib.Vector2::new(cx - face_r * 0.3, cy + face_r * 0.3),
-      @raylib.Vector2::new(cx + face_r * 0.3, cy + face_r * 0.3),
-      2.0,
-      color_header_bg,
-    )
-  } else {
-    @raylib.draw_circle_sector(
-      @raylib.Vector2::new(cx, cy + face_r * 0.1),
-      face_r * 0.35,
-      0.0,
-      180.0,
-      16,
-      color_header_bg,
-    )
-  }
-}
-
-///|
-fn render_mode_button(
-  hh : Float,
-  restart_btn_x : Float,
-  restart_btn_size : Float,
+fn render_restart_icon(
+  cx : Float,
+  cy : Float,
+  r : Float,
+  color : @raylib.Color,
 ) -> Unit {
-  let mode_btn_size = hh * mode_btn_ratio
-  let mode_btn_x = restart_btn_x + restart_btn_size + hh * mode_btn_gap_ratio
-  let mode_btn_y = (hh - mode_btn_size) / 2.0
-  let mode_btn_color = if game.current_mode == mode_dig {
+  // Draw ~270° arc using draw_ring (gap at top-right)
+  let thick = r * 0.25
+  @raylib.draw_ring(
+    @raylib.Vector2::new(cx, cy),
+    r - thick,
+    r,
+    45.0,
+    315.0,
+    24,
+    color,
+  )
+  // Arrowhead at the gap (pointing clockwise, at ~45° position)
+  let arrow_size = r * 0.45
+  // Tip of arrow at end of arc (45° = top-right, cos/sin = 0.707)
+  let cos45 : Float = 0.707
+  let tip_x = cx + (r - thick / 2.0) * cos45
+  let tip_y = cy - (r - thick / 2.0) * cos45
+  // Two base points of the triangle
+  @raylib.draw_triangle(
+    @raylib.Vector2::new(tip_x + arrow_size * 0.3, tip_y - arrow_size * 0.6),
+    @raylib.Vector2::new(tip_x, tip_y),
+    @raylib.Vector2::new(tip_x + arrow_size * 0.7, tip_y + arrow_size * 0.2),
+    color,
+  )
+}
+
+///|
+fn render_footer() -> Unit {
+  let sw = Float::from_int(screen.width)
+  let sh = Float::from_int(screen.height)
+  let footer_y = sh - screen.footer_height
+  // Footer background (subtle)
+  @raylib.draw_rectangle(
+    0,
+    footer_y.to_int(),
+    screen.width,
+    screen.footer_height.to_int(),
+    color_bg,
+  )
+  // FAB mode toggle button at bottom center
+  let fab_size = screen.footer_height * 0.75
+  let fab_x = (sw - fab_size) / 2.0
+  let fab_y = footer_y + (screen.footer_height - fab_size) / 2.0
+  let fab_color = if game.current_mode == mode_dig {
     color_unrevealed
   } else {
     color_flag
   }
-  // Shadow behind mode button
+  // Shadow
   draw_shadow_rounded(
-    mode_btn_x,
-    mode_btn_y,
-    mode_btn_size,
-    mode_btn_size,
-    btn_roundness,
-    mode_btn_size * 0.04,
-    color_shadow,
+    fab_x,
+    fab_y,
+    fab_size,
+    fab_size,
+    0.5,
+    fab_size * 0.05,
+    color_shadow_strong,
   )
-  let mode_btn_rect = @raylib.Rectangle::new(
-    mode_btn_x, mode_btn_y, mode_btn_size, mode_btn_size,
-  )
-  @raylib.draw_rectangle_rounded(
-    mode_btn_rect, btn_roundness, 8, mode_btn_color,
-  )
-  let mcx = mode_btn_x + mode_btn_size / 2.0
-  let mcy = mode_btn_y + mode_btn_size / 2.0
+  // FAB circle background
+  let fab_rect = @raylib.Rectangle::new(fab_x, fab_y, fab_size, fab_size)
+  @raylib.draw_rectangle_rounded(fab_rect, 0.5, 16, fab_color)
+  // Icon inside FAB
+  let mcx = fab_x + fab_size / 2.0
+  let mcy = fab_y + fab_size / 2.0
   if game.current_mode == mode_dig {
-    // Dig mode icon: white circle (reveal indicator)
+    // Dig mode icon: white circle
     @raylib.draw_circle_v(
       @raylib.Vector2::new(mcx, mcy),
-      mode_btn_size * 0.2,
+      fab_size * 0.2,
       @raylib.white,
     )
   } else {
     // Flag mode icon: white flag
-    let mfs = mode_btn_size * 0.2
-    let mthick = mode_btn_size * 0.06
+    let mfs = fab_size * 0.2
+    let mthick = fab_size * 0.06
     draw_flag_icon(
       mcx, mcy, mfs, mthick, @raylib.white, @raylib.white, @raylib.white,
     )
   }
+}
+
+///|
+fn draw_mine_icon_small(
+  cx : Float,
+  cy : Float,
+  r : Float,
+  color : @raylib.Color,
+) -> Unit {
+  // Circle body
+  @raylib.draw_circle_v(@raylib.Vector2::new(cx, cy), r, color)
+  // Spike lines
+  let thick = r * 0.3
+  let spike = r * 1.4
+  // Horizontal
+  @raylib.draw_line_ex(
+    @raylib.Vector2::new(cx - spike, cy),
+    @raylib.Vector2::new(cx + spike, cy),
+    thick,
+    color,
+  )
+  // Vertical
+  @raylib.draw_line_ex(
+    @raylib.Vector2::new(cx, cy - spike),
+    @raylib.Vector2::new(cx, cy + spike),
+    thick,
+    color,
+  )
+  // Diagonal
+  let diag = spike * 0.71
+  @raylib.draw_line_ex(
+    @raylib.Vector2::new(cx - diag, cy - diag),
+    @raylib.Vector2::new(cx + diag, cy + diag),
+    thick,
+    color,
+  )
+  @raylib.draw_line_ex(
+    @raylib.Vector2::new(cx + diag, cy - diag),
+    @raylib.Vector2::new(cx - diag, cy + diag),
+    thick,
+    color,
+  )
+}
+
+///|
+fn draw_clock_icon(
+  cx : Float,
+  cy : Float,
+  r : Float,
+  color : @raylib.Color,
+) -> Unit {
+  // Clock circle outline
+  let thick = r * 0.25
+  @raylib.draw_ring(
+    @raylib.Vector2::new(cx, cy),
+    r - thick,
+    r,
+    0.0,
+    360.0,
+    24,
+    color,
+  )
+  // Hour hand (pointing up-right, ~2 o'clock)
+  @raylib.draw_line_ex(
+    @raylib.Vector2::new(cx, cy),
+    @raylib.Vector2::new(cx, cy - r * 0.55),
+    thick * 0.8,
+    color,
+  )
+  // Minute hand (pointing right, ~3 o'clock)
+  @raylib.draw_line_ex(
+    @raylib.Vector2::new(cx, cy),
+    @raylib.Vector2::new(cx + r * 0.45, cy),
+    thick * 0.6,
+    color,
+  )
 }
 
 ///|

@@ -9,6 +9,7 @@ fn main {
   screen.width = @raylib.get_screen_width()
   screen.height = @raylib.get_screen_height()
   screen.header_height = Float::from_int(screen.height) * header_height_ratio
+  screen.footer_height = Float::from_int(screen.height) * footer_height_ratio
   while not(@raylib.window_should_close()) {
     update()
     render()
