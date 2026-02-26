@@ -1,0 +1,30 @@
+// Generated using `moon info`, DON'T EDIT IT
+package "tonyfettes/raylibminesweeper"
+
+// Values
+
+// Errors
+
+// Types and methods
+type CameraState
+
+type Cell
+
+type GameState
+
+type HighlightState
+
+type LayoutState
+
+type PanState
+
+type PinchState
+
+type ScreenState
+
+type TouchState
+
+// Type aliases
+
+// Traits
+
